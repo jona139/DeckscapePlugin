@@ -1,0 +1,15 @@
+.gradle/
+build/
+.idea/
+out/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/shelf/
+.idea/dictionaries/
+.idea/libraries/
+*.iml
+hs_err_pid*.log
+replay_pid*.log
+*.ipr
+*.iws
+.DS_Store

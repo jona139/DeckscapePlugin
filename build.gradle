@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    maven {
+        url = 'https://repo.runelite.net'
+    }
+    mavenCentral()
+}
+
+def runeLiteVersion = 'latest.release'
+
+dependencies {
+    compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+
+    testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+    testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+}
+
+group = 'com.deckscape.runelite'
+version = '0.1.0'
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(11)
+}
+
+test { useJUnitPlatform() }
+
+// The model/service tests do not start the GPU client. Excluding platform
+// natives keeps them portable across Plugin Hub CI and Windows development.
+
+tasks.register('run', JavaExec) {
+    group = 'application'
+    description = 'Run the RuneLite client with Deckscape plugin loaded'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.deckscape.runelite.DeckscapePluginTest'
+    enableAssertions = true
+}
