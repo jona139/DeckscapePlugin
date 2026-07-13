@@ -1,6 +1,5 @@
 package com.deckscape.runelite.ui;
 
-import com.deckscape.runelite.DeckscapeConfig;
 import com.deckscape.runelite.DeckscapeStore;
 import com.deckscape.runelite.model.DeckscapeState;
 import java.awt.BorderLayout;
@@ -30,7 +29,6 @@ import net.runelite.client.ui.PluginPanel;
 public final class DeckscapePanel extends PluginPanel
 {
     private final DeckscapeStore store;
-    private final DeckscapeConfig config;
     private DeckscapeDialog dialog;
     private DeckscapeDialog.OpenPackAction openPackAction;
     private Runnable syncAction;
@@ -43,11 +41,10 @@ public final class DeckscapePanel extends PluginPanel
     private final JPanel pairingBox = new JPanel();
 
     @Inject
-    public DeckscapePanel(DeckscapeStore store, DeckscapeConfig config)
+    public DeckscapePanel(DeckscapeStore store)
     {
         super(false);
         this.store = store;
-        this.config = config;
         setLayout(new BorderLayout());
         setBackground(DeckscapePalette.PANEL_DARK);
 
@@ -205,16 +202,15 @@ public final class DeckscapePanel extends PluginPanel
     {
         SwingUtilities.invokeLater(() -> {
             DeckscapeState state = store.load();
-            boolean configured = config.apiUrl() != null && !config.apiUrl().isEmpty() && config.apiKey() != null && !config.apiKey().isEmpty();
-            if (configured && state.isLinked())
+            if (state.isLinked())
             {
                 statusLabel.setText("● Connected to Deckscape");
                 statusLabel.setForeground(new Color(111, 204, 120));
             }
             else
             {
-                statusLabel.setText(configured ? "● Waiting for account link" : "● Server setup required");
-                statusLabel.setForeground(configured ? new Color(236, 184, 79) : DeckscapePalette.MUTED);
+                statusLabel.setText("● Waiting for account link");
+                statusLabel.setForeground(new Color(236, 184, 79));
             }
             String lastSync = state.getLastSyncAt() <= 0 ? "Not synchronized yet" : "Last sync " + new SimpleDateFormat("HH:mm:ss").format(new Date(state.getLastSyncAt()));
             if (!state.getPendingEvents().isEmpty()) lastSync += " · " + state.getPendingEvents().size() + " queued";

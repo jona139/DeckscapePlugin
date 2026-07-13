@@ -29,25 +29,4 @@ public interface DeckscapeConfig extends Config
         return true;
     }
 
-    @ConfigItem(
-        keyName = "apiUrl",
-        name = "Supabase API URL",
-        description = "The official Deckscape Supabase project URL.",
-        position = 2
-    )
-    default String apiUrl()
-    {
-        return "";
-    }
-
-    @ConfigItem(
-        keyName = "apiKey",
-        name = "Supabase Anon Key",
-        description = "The official Deckscape publishable key.",
-        position = 3
-    )
-    default String apiKey()
-    {
-        return "";
-    }
 }

@@ -13,8 +13,8 @@ RuneLite companion for the server-authoritative Deckscape account.
 - New packs use an in-game unlock banner; pack opening uses a full-canvas sealed-pack, staggered deal,
   and rarity reveal animation built from Deckscape assets.
 
-The official build must be configured with the production Supabase URL and publishable key. Users never
-enter a password or reusable website credential into RuneLite.
+The official build includes Deckscape's public Supabase project URL and publishable key. Users never
+configure backend details or enter a password or reusable website credential into RuneLite.
 
 ## Build
 

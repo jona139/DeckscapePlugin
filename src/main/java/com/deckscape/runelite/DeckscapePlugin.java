@@ -164,8 +164,8 @@ public final class DeckscapePlugin extends Plugin
 
     private void beginPairing()
     {
-        if (!hasServerConfig() || store.load().isLinked() || !pairingInFlight.compareAndSet(false, true)) return;
-        syncClient.startPairing(config.apiUrl(), config.apiKey())
+        if (store.load().isLinked() || !pairingInFlight.compareAndSet(false, true)) return;
+        syncClient.startPairing()
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
                 {
@@ -184,11 +184,11 @@ public final class DeckscapePlugin extends Plugin
     private void pollPairing()
     {
         DeckscapeState state = store.load();
-        if (!hasServerConfig() || state.getPairingCode().isEmpty() || state.getPendingDeviceToken().isEmpty()
+        if (state.getPairingCode().isEmpty() || state.getPendingDeviceToken().isEmpty()
             || !pairingInFlight.compareAndSet(false, true)) return;
         String code = state.getPairingCode();
         String pendingToken = state.getPendingDeviceToken();
-        syncClient.finishPairing(config.apiUrl(), config.apiKey(), code, pendingToken)
+        syncClient.finishPairing(code, pendingToken)
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
                 {
@@ -251,14 +251,14 @@ public final class DeckscapePlugin extends Plugin
     private void flushPendingEvents()
     {
         DeckscapeState state = store.load();
-        if (!hasServerConfig() || !state.isLinked() || !eventInFlight.compareAndSet(false, true)) return;
+        if (!state.isLinked() || !eventInFlight.compareAndSet(false, true)) return;
         PendingSyncEvent item;
         synchronized (state)
         {
             if (state.getPendingEvents().isEmpty()) { eventInFlight.set(false); return; }
             item = state.getPendingEvents().get(0);
         }
-        syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), item.getAction(), item.getPayload())
+        syncClient.request(state.getDeviceToken(), item.getAction(), item.getPayload())
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
                 {
@@ -302,7 +302,7 @@ public final class DeckscapePlugin extends Plugin
     private void openPack(PackType type)
     {
         DeckscapeState state = store.load();
-        if (!hasServerConfig() || !state.isLinked())
+        if (!state.isLinked())
         {
             notifier.notify("Link Deckscape to your website account before opening packs.");
             return;
@@ -310,7 +310,7 @@ public final class DeckscapePlugin extends Plugin
         panel.hideDialog();
         JsonObject payload = new JsonObject();
         payload.addProperty("type", type.name());
-        syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), "open_pack", payload)
+        syncClient.request(state.getDeviceToken(), "open_pack", payload)
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 List<DeckscapeCard> revealed = new ArrayList<>();
                 if (response.has("revealed"))
@@ -335,8 +335,8 @@ public final class DeckscapePlugin extends Plugin
     private void syncWithServer()
     {
         DeckscapeState state = store.load();
-        if (!hasServerConfig() || !state.isLinked() || !syncInFlight.compareAndSet(false, true)) return;
-        syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), "get_state", null)
+        if (!state.isLinked() || !syncInFlight.compareAndSet(false, true)) return;
+        syncClient.request(state.getDeviceToken(), "get_state", null)
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
                 {
@@ -349,11 +349,6 @@ public final class DeckscapePlugin extends Plugin
                 finally { syncInFlight.set(false); }
             }))
             .exceptionally(error -> { syncInFlight.set(false); log.warn("Deckscape sync failed", error); return null; });
-    }
-
-    private boolean hasServerConfig()
-    {
-        return config.apiUrl() != null && !config.apiUrl().isEmpty() && config.apiKey() != null && !config.apiKey().isEmpty();
     }
 
     private void updateLocalState(DeckscapeState state, JsonObject serverState)

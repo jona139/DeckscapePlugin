@@ -21,6 +21,8 @@ import okhttp3.Response;
 public final class DeckscapeSyncClient
 {
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final String ECONOMY_URL = "https://ahqakitttmbcpxdpdlkx.supabase.co/functions/v1/economy";
+    private static final String PUBLISHABLE_KEY = "sb_publishable_cJq6CMLU68GNrfxe5XUPyQ_VRNCuZBX";
     private final OkHttpClient httpClient;
     private final Gson gson = new Gson();
 
@@ -30,28 +32,23 @@ public final class DeckscapeSyncClient
         this.httpClient = httpClient;
     }
 
-    public CompletableFuture<JsonObject> request(String apiUrl, String apiKey, String deviceToken, String action, JsonObject payload)
+    public CompletableFuture<JsonObject> request(String deviceToken, String action, JsonObject payload)
     {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        if (apiUrl == null || apiUrl.isEmpty() || apiKey == null || apiKey.isEmpty() || deviceToken == null || deviceToken.isEmpty())
+        if (deviceToken == null || deviceToken.isEmpty())
         {
             future.completeExceptionally(new Exception("Sync is not configured or not linked."));
             return future;
         }
-
-        String url = apiUrl;
-        if (!url.endsWith("/")) url += "/";
-        url += "functions/v1/economy";
 
         JsonObject bodyJson = payload != null ? payload : new JsonObject();
         bodyJson.addProperty("action", action);
 
         RequestBody body = RequestBody.create(JSON, gson.toJson(bodyJson));
         Request request = new Request.Builder()
-            .url(url)
+            .url(ECONOMY_URL)
             .post(body)
-            .addHeader("apikey", apiKey)
-            .addHeader("Authorization", "Bearer " + apiKey)
+            .addHeader("apikey", PUBLISHABLE_KEY)
             .addHeader("X-Deckscape-Device-Token", deviceToken)
             .build();
 
@@ -95,34 +92,27 @@ public final class DeckscapeSyncClient
         return future;
     }
 
-    public CompletableFuture<JsonObject> startPairing(String apiUrl, String apiKey)
+    public CompletableFuture<JsonObject> startPairing()
     {
         JsonObject body = new JsonObject();
         body.addProperty("action", "start_runelite_pairing");
-        return publicRequest(apiUrl, apiKey, body);
+        return publicRequest(body);
     }
 
-    public CompletableFuture<JsonObject> finishPairing(String apiUrl, String apiKey, String pairingCode, String deviceToken)
+    public CompletableFuture<JsonObject> finishPairing(String pairingCode, String deviceToken)
     {
         JsonObject body = new JsonObject();
         body.addProperty("action", "finish_runelite_pairing");
         body.addProperty("pairingCode", pairingCode == null ? "" : pairingCode.trim().toUpperCase());
         body.addProperty("deviceToken", deviceToken == null ? "" : deviceToken);
-        return publicRequest(apiUrl, apiKey, body);
+        return publicRequest(body);
     }
 
-    private CompletableFuture<JsonObject> publicRequest(String apiUrl, String apiKey, JsonObject bodyJson)
+    private CompletableFuture<JsonObject> publicRequest(JsonObject bodyJson)
     {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        if (apiUrl == null || apiUrl.isEmpty() || apiKey == null || apiKey.isEmpty())
-        {
-            future.completeExceptionally(new Exception("Deckscape server is not configured."));
-            return future;
-        }
-        String url = apiUrl.endsWith("/") ? apiUrl : apiUrl + "/";
-        url += "functions/v1/economy";
-        Request request = new Request.Builder().url(url).post(RequestBody.create(JSON, gson.toJson(bodyJson)))
-            .addHeader("apikey", apiKey).addHeader("Authorization", "Bearer " + apiKey).build();
+        Request request = new Request.Builder().url(ECONOMY_URL).post(RequestBody.create(JSON, gson.toJson(bodyJson)))
+            .addHeader("apikey", PUBLISHABLE_KEY).build();
         httpClient.newCall(request).enqueue(jsonCallback(future));
         return future;
     }
