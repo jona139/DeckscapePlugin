@@ -95,7 +95,23 @@ public final class DeckscapeSyncClient
         return future;
     }
 
-    public CompletableFuture<JsonObject> pair(String apiUrl, String apiKey, String pairingCode)
+    public CompletableFuture<JsonObject> startPairing(String apiUrl, String apiKey)
+    {
+        JsonObject body = new JsonObject();
+        body.addProperty("action", "start_runelite_pairing");
+        return publicRequest(apiUrl, apiKey, body);
+    }
+
+    public CompletableFuture<JsonObject> finishPairing(String apiUrl, String apiKey, String pairingCode, String deviceToken)
+    {
+        JsonObject body = new JsonObject();
+        body.addProperty("action", "finish_runelite_pairing");
+        body.addProperty("pairingCode", pairingCode == null ? "" : pairingCode.trim().toUpperCase());
+        body.addProperty("deviceToken", deviceToken == null ? "" : deviceToken);
+        return publicRequest(apiUrl, apiKey, body);
+    }
+
+    private CompletableFuture<JsonObject> publicRequest(String apiUrl, String apiKey, JsonObject bodyJson)
     {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
         if (apiUrl == null || apiUrl.isEmpty() || apiKey == null || apiKey.isEmpty())
@@ -105,9 +121,6 @@ public final class DeckscapeSyncClient
         }
         String url = apiUrl.endsWith("/") ? apiUrl : apiUrl + "/";
         url += "functions/v1/economy";
-        JsonObject bodyJson = new JsonObject();
-        bodyJson.addProperty("action", "pair_runelite");
-        bodyJson.addProperty("pairingCode", pairingCode == null ? "" : pairingCode.trim().toUpperCase());
         Request request = new Request.Builder().url(url).post(RequestBody.create(JSON, gson.toJson(bodyJson)))
             .addHeader("apikey", apiKey).addHeader("Authorization", "Bearer " + apiKey).build();
         httpClient.newCall(request).enqueue(jsonCallback(future));

@@ -31,7 +31,7 @@ import net.runelite.client.util.ImageUtil;
 
 public final class DeckscapeDialog extends JDialog
 {
-    public interface OpenPackAction { List<DeckscapeCard> open(PackType type); }
+    public interface OpenPackAction { void open(PackType type); }
 
     private final DeckscapeStore store;
     private final OpenPackAction openPackAction;
@@ -209,7 +209,8 @@ public final class DeckscapeDialog extends JDialog
         listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
         listPanel.setOpaque(false);
 
-        for (PackType type : PackType.values())
+        PackType[] visiblePacks = { PackType.GENERAL, PackType.COMBAT, PackType.SKILLING, PackType.FACTION_MISTHALIN };
+        for (PackType type : visiblePacks)
         {
             JPanel row = new JPanel(new BorderLayout(15, 0));
             row.setBackground(DeckscapePalette.PANEL);
@@ -234,11 +235,10 @@ public final class DeckscapeDialog extends JDialog
             open.addActionListener(event ->
             {
                 if (openPackAction == null) return;
-                List<DeckscapeCard> cards = openPackAction.open(type);
-                if (cards != null)
-                {
-                    showPackOpening(type, cards);
-                }
+                open.setEnabled(false);
+                open.setText("Opening…");
+                setVisible(false);
+                openPackAction.open(type);
             });
             row.add(open, BorderLayout.EAST);
             

@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class DeckscapeState
 {
@@ -14,6 +16,11 @@ public final class DeckscapeState
     private Map<String, Integer> challengeProgress = new LinkedHashMap<>();
     private int xpTowardsPack;
     private String deviceToken;
+    private String pairingCode;
+    private String pendingDeviceToken;
+    private long pairingExpiresAt;
+    private long lastSyncAt;
+    private List<PendingSyncEvent> pendingEvents = new ArrayList<>();
 
     public DeckscapeState()
     {
@@ -21,7 +28,6 @@ public final class DeckscapeState
         {
             packs.put(type, 0);
         }
-        packs.put(PackType.GENERAL, 3);
     }
 
     public String getUniqueId()
@@ -37,18 +43,16 @@ public final class DeckscapeState
     public String getDeviceToken() { return deviceToken == null ? "" : deviceToken; }
     public void setDeviceToken(String deviceToken) { this.deviceToken = deviceToken; }
     public boolean isLinked() { return deviceToken != null && !deviceToken.isEmpty(); }
-
-    private static String generateRandomCode(int length)
-    {
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        java.util.Random rnd = new java.util.Random();
-        StringBuilder sb = new StringBuilder(length);
-        for (int i = 0; i < length; i++)
-        {
-            sb.append(chars.charAt(rnd.nextInt(chars.length())));
-        }
-        return sb.toString();
-    }
+    public String getPairingCode() { return pairingCode == null ? "" : pairingCode; }
+    public void setPairingCode(String pairingCode) { this.pairingCode = pairingCode; }
+    public String getPendingDeviceToken() { return pendingDeviceToken == null ? "" : pendingDeviceToken; }
+    public void setPendingDeviceToken(String pendingDeviceToken) { this.pendingDeviceToken = pendingDeviceToken; }
+    public long getPairingExpiresAt() { return pairingExpiresAt; }
+    public void setPairingExpiresAt(long pairingExpiresAt) { this.pairingExpiresAt = pairingExpiresAt; }
+    public void clearPairingSession() { pairingCode = null; pendingDeviceToken = null; pairingExpiresAt = 0L; }
+    public long getLastSyncAt() { return lastSyncAt; }
+    public void setLastSyncAt(long lastSyncAt) { this.lastSyncAt = lastSyncAt; }
+    public List<PendingSyncEvent> getPendingEvents() { if (pendingEvents == null) pendingEvents = new ArrayList<>(); return pendingEvents; }
 
     public Map<String, Integer> getCollection() { return collection; }
     public Map<PackType, Integer> getPacks() { return packs; }

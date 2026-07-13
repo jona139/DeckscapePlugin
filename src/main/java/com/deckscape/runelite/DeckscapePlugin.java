@@ -6,16 +6,23 @@ import com.deckscape.runelite.model.CardCatalog;
 import com.deckscape.runelite.model.DeckscapeCard;
 import com.deckscape.runelite.model.DeckscapeState;
 import com.deckscape.runelite.model.PackType;
+import com.deckscape.runelite.model.PendingSyncEvent;
 import com.deckscape.runelite.ui.DeckscapePanel;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
@@ -43,8 +50,12 @@ import net.runelite.client.util.ImageUtil;
 )
 public final class DeckscapePlugin extends Plugin
 {
-    private static final String ELEMENTAL_CHALLENGE = "elemental_strike_max_hit";
+    private static final String ELEMENTAL_TIER = "elemental_strike_max_hit:gold";
+    private static final long SYNC_INTERVAL_MS = 30_000L;
     private final Map<Skill, Integer> previousXp = new EnumMap<>(Skill.class);
+    private final AtomicBoolean pairingInFlight = new AtomicBoolean();
+    private final AtomicBoolean syncInFlight = new AtomicBoolean();
+    private final AtomicBoolean eventInFlight = new AtomicBoolean();
 
     @Inject private net.runelite.api.Client client;
     @Inject private DeckscapeConfig config;
@@ -53,11 +64,15 @@ public final class DeckscapePlugin extends Plugin
     @Inject private ClientToolbar clientToolbar;
     @Inject private OverlayManager overlayManager;
     @Inject private ChallengeCompletionOverlay completionOverlay;
+    @Inject private PackRewardOverlay packRewardOverlay;
+    @Inject private PackRevealOverlay packRevealOverlay;
     @Inject private ElementalStrikeTracker elementalStrikeTracker;
     @Inject private Notifier notifier;
     @Inject private DeckscapeSyncClient syncClient;
+    @Inject private ScheduledExecutorService executor;
 
     private NavigationButton navigationButton;
+    private ScheduledFuture<?> maintenanceTask;
 
     @Provides
     DeckscapeConfig provideConfig(ConfigManager configManager)
@@ -68,28 +83,37 @@ public final class DeckscapePlugin extends Plugin
     @Override
     protected void startUp()
     {
-        store.load();
-        panel.setHandlers(this::openPack, this::syncWithServer, this::pairWithServer, client::playSoundEffect);
+        DeckscapeState state = store.load();
+        panel.setHandlers(this::openPack, this::syncWithServer, this::beginPairing, client::playSoundEffect);
         elementalStrikeTracker.setCompletionHandler(this::completeElementalStrikeChallenge);
         overlayManager.add(completionOverlay);
+        overlayManager.add(packRewardOverlay);
+        overlayManager.add(packRevealOverlay);
         BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/com/deckscape/runelite/icon.png");
-        navigationButton = NavigationButton.builder()
-            .tooltip("Deckscape")
-            .icon(icon)
-            .priority(7)
-            .panel(panel)
-            .build();
+        navigationButton = NavigationButton.builder().tooltip("Deckscape").icon(icon).priority(7).panel(panel).build();
         clientToolbar.addNavigation(navigationButton);
         panel.refresh();
-        syncWithServer();
+        if (state.isLinked())
+        {
+            syncWithServer();
+            flushPendingEvents();
+        }
+        else
+        {
+            beginPairing();
+        }
+        maintenanceTask = executor.scheduleWithFixedDelay(this::maintainSync, 5, 5, TimeUnit.SECONDS);
     }
 
     @Override
     protected void shutDown()
     {
         previousXp.clear();
+        if (maintenanceTask != null) maintenanceTask.cancel(false);
         elementalStrikeTracker.setCompletionHandler(null);
         overlayManager.remove(completionOverlay);
+        overlayManager.remove(packRewardOverlay);
+        overlayManager.remove(packRevealOverlay);
         if (navigationButton != null) clientToolbar.removeNavigation(navigationButton);
     }
 
@@ -99,6 +123,11 @@ public final class DeckscapePlugin extends Plugin
         if (event.getGameState() == GameState.LOGIN_SCREEN || event.getGameState() == GameState.HOPPING)
         {
             previousXp.clear();
+        }
+        else if (event.getGameState() == GameState.LOGGED_IN)
+        {
+            syncWithServer();
+            flushPendingEvents();
         }
     }
 
@@ -110,144 +139,221 @@ public final class DeckscapePlugin extends Plugin
         processXp(event.getXp() - previous);
     }
 
-    @Subscribe
-    public void onGraphicChanged(GraphicChanged event)
+    @Subscribe public void onGraphicChanged(GraphicChanged event) { elementalStrikeTracker.onGraphicChanged(event); }
+    @Subscribe public void onHitsplatApplied(HitsplatApplied event) { elementalStrikeTracker.onHitsplatApplied(event); }
+
+    private void maintainSync()
     {
-        elementalStrikeTracker.onGraphicChanged(event);
+        try
+        {
+            DeckscapeState state = store.load();
+            if (!state.isLinked())
+            {
+                if (state.getPairingCode().isEmpty() || state.getPairingExpiresAt() <= System.currentTimeMillis()) beginPairing();
+                else pollPairing();
+                return;
+            }
+            flushPendingEvents();
+            if (System.currentTimeMillis() - state.getLastSyncAt() >= SYNC_INTERVAL_MS) syncWithServer();
+        }
+        catch (RuntimeException error)
+        {
+            log.debug("Deckscape background sync maintenance failed", error);
+        }
     }
 
-    @Subscribe
-    public void onHitsplatApplied(HitsplatApplied event)
+    private void beginPairing()
     {
-        elementalStrikeTracker.onHitsplatApplied(event);
+        if (!hasServerConfig() || store.load().isLinked() || !pairingInFlight.compareAndSet(false, true)) return;
+        syncClient.startPairing(config.apiUrl(), config.apiKey())
+            .thenAccept(response -> SwingUtilities.invokeLater(() -> {
+                try
+                {
+                    DeckscapeState state = store.load();
+                    state.setPairingCode(response.get("pairingCode").getAsString());
+                    state.setPendingDeviceToken(response.get("deviceToken").getAsString());
+                    state.setPairingExpiresAt(Instant.parse(response.get("expiresAt").getAsString()).toEpochMilli());
+                    store.save();
+                    panel.refresh();
+                }
+                finally { pairingInFlight.set(false); }
+            }))
+            .exceptionally(error -> { pairingInFlight.set(false); log.warn("Could not create a RuneLite sync code", error); return null; });
+    }
+
+    private void pollPairing()
+    {
+        DeckscapeState state = store.load();
+        if (!hasServerConfig() || state.getPairingCode().isEmpty() || state.getPendingDeviceToken().isEmpty()
+            || !pairingInFlight.compareAndSet(false, true)) return;
+        String code = state.getPairingCode();
+        String pendingToken = state.getPendingDeviceToken();
+        syncClient.finishPairing(config.apiUrl(), config.apiKey(), code, pendingToken)
+            .thenAccept(response -> SwingUtilities.invokeLater(() -> {
+                try
+                {
+                    if (!response.has("linked") || !response.get("linked").getAsBoolean()) return;
+                    DeckscapeState current = store.load();
+                    current.setDeviceToken(pendingToken);
+                    current.clearPairingSession();
+                    if (response.has("state")) updateLocalState(current, response.getAsJsonObject("state"));
+                    current.setLastSyncAt(System.currentTimeMillis());
+                    store.save();
+                    panel.refresh();
+                    notifier.notify("Deckscape linked. Your RuneLite and website collection are now in sync.");
+                    flushPendingEvents();
+                }
+                finally { pairingInFlight.set(false); }
+            }))
+            .exceptionally(error -> { pairingInFlight.set(false); log.debug("Deckscape pairing is still pending", error); return null; });
     }
 
     private void processXp(int gained)
     {
         DeckscapeState state = store.load();
-        if (!state.isLinked() || config.apiUrl().isEmpty() || config.apiKey().isEmpty()) return;
-        JsonObject payload = new JsonObject();
-        payload.addProperty("eventId", UUID.randomUUID().toString());
-        payload.addProperty("xp", gained);
-        syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), "runelite_xp", payload)
-            .thenAccept(response -> SwingUtilities.invokeLater(() -> {
-                if (response.has("state")) updateLocalState(state, response.getAsJsonObject("state"));
-                store.save(); panel.refresh();
-                if (config.packRewardPopup() && response.has("awarded") && response.getAsJsonArray("awarded").size() > 0)
-                    notifier.notify("Deckscape: You earned " + response.getAsJsonArray("awarded").size() + " pack(s)!");
-            }))
-            .exceptionally(ex -> { log.warn("Deckscape XP event was not accepted; no local reward was granted", ex); return null; });
-    }
-
-    private List<DeckscapeCard> openPack(PackType type)
-    {
-        DeckscapeState state = store.load();
-        boolean hasApi = !config.apiUrl().isEmpty() && !config.apiKey().isEmpty() && state.isLinked();
-        if (hasApi)
+        if (!state.isLinked()) return;
+        int remaining = gained;
+        synchronized (state)
         {
-            try
+            while (remaining > 0)
             {
+                int amount = Math.min(100_000, remaining);
                 JsonObject payload = new JsonObject();
-                payload.addProperty("type", type.name());
-                JsonObject response = syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), "open_pack", payload)
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
-                
-                if (response.has("revealed"))
-                {
-                    JsonArray revealed = response.getAsJsonArray("revealed");
-                    List<DeckscapeCard> cards = new java.util.ArrayList<>();
-                    for (JsonElement el : revealed)
-                    {
-                        String cardId = el.getAsJsonObject().get("id").getAsString();
-                        DeckscapeCard card = CardCatalog.byId(cardId);
-                        if (card != null) cards.add(card);
-                    }
-                    
-                    if (response.has("state"))
-                    {
-                        updateLocalState(state, response.getAsJsonObject("state"));
-                        store.save();
-                    }
-                    return cards;
-                }
+                payload.addProperty("xp", amount);
+                String eventId = UUID.randomUUID().toString();
+                state.getPendingEvents().add(new PendingSyncEvent("runelite_xp", eventId, payload));
+                remaining -= amount;
             }
-            catch (Exception ex)
-            {
-                log.warn("Failed to open pack on server: ", ex);
-                return null;
-            }
+            store.save();
         }
-
-        return null;
+        flushPendingEvents();
+        panel.refresh();
     }
 
     private void completeElementalStrikeChallenge(VerifiedRuneLiteChallengeEvent event)
     {
         DeckscapeState state = store.load();
-        if (state.getCompletedChallenges().contains("elemental_strike_max_hit:gold")) return;
-        boolean hasApi = !config.apiUrl().isEmpty() && !config.apiKey().isEmpty() && state.isLinked();
-        if (hasApi)
+        if (!state.isLinked() || state.getCompletedChallenges().contains(ELEMENTAL_TIER)) return;
+        synchronized (state)
         {
+            boolean alreadyQueued = state.getPendingEvents().stream().anyMatch(item -> "runelite_challenge".equals(item.getAction()));
+            if (alreadyQueued) return;
             JsonObject payload = new JsonObject();
-            payload.addProperty("eventId", event.getEventId());
             payload.addProperty("spell", event.getPayload().getSpell());
             payload.addProperty("damage", event.getPayload().getDamage());
             payload.addProperty("maxHit", event.getPayload().getMaxHit());
-            syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), "runelite_challenge", payload)
-                .thenAccept(response -> {
-                    if (response.has("state"))
-                    {
-                        SwingUtilities.invokeLater(() -> {
-                            updateLocalState(state, response.getAsJsonObject("state"));
-                            store.save();
-                            completionOverlay.showCompletion("Perfectly Elemental", "Elemental Strike gold trim unlocked");
-                            notifier.notify("Deckscape challenge complete: Perfectly Elemental");
-                            panel.refresh();
-                        });
-                    }
-                })
-                .exceptionally(ex -> {
-                    log.warn("Failed to claim challenge tier on server: ", ex);
-                    return null;
-                });
+            state.getPendingEvents().add(new PendingSyncEvent("runelite_challenge", event.getEventId(), payload));
+            store.save();
         }
-        log.debug("Queued Deckscape RuneLite event {} ({})", event.getEventId(), event.getKind());
+        flushPendingEvents();
+    }
+
+    private void flushPendingEvents()
+    {
+        DeckscapeState state = store.load();
+        if (!hasServerConfig() || !state.isLinked() || !eventInFlight.compareAndSet(false, true)) return;
+        PendingSyncEvent item;
+        synchronized (state)
+        {
+            if (state.getPendingEvents().isEmpty()) { eventInFlight.set(false); return; }
+            item = state.getPendingEvents().get(0);
+        }
+        syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), item.getAction(), item.getPayload())
+            .thenAccept(response -> SwingUtilities.invokeLater(() -> {
+                try
+                {
+                    DeckscapeState current = store.load();
+                    if (response.has("state")) updateLocalState(current, response.getAsJsonObject("state"));
+                    synchronized (current)
+                    {
+                        current.getPendingEvents().removeIf(event -> item.getEventId().equals(event.getEventId()));
+                        current.setLastSyncAt(System.currentTimeMillis());
+                        store.save();
+                    }
+                    if ("runelite_xp".equals(item.getAction())) showAwardedPacks(response);
+                    else if ("runelite_challenge".equals(item.getAction()))
+                    {
+                        completionOverlay.showCompletion("Perfectly Elemental", "Elemental Strike gold trim unlocked");
+                        notifier.notify("Deckscape challenge complete: Perfectly Elemental");
+                    }
+                    panel.refresh();
+                }
+                finally
+                {
+                    eventInFlight.set(false);
+                    flushPendingEvents();
+                }
+            }))
+            .exceptionally(error -> { eventInFlight.set(false); log.warn("Deckscape event retained for retry: " + item.getEventId(), error); return null; });
+    }
+
+    private void showAwardedPacks(JsonObject response)
+    {
+        if (!response.has("awarded")) return;
+        JsonArray awarded = response.getAsJsonArray("awarded");
+        for (JsonElement value : awarded)
+        {
+            try { packRewardOverlay.showPack(PackType.valueOf(value.getAsString())); }
+            catch (IllegalArgumentException ignored) { log.debug("Server awarded an unknown pack type: {}", value); }
+        }
+        if (awarded.size() > 0) notifier.notify("Deckscape: " + awarded.size() + " new pack" + (awarded.size() == 1 ? "" : "s") + " unlocked!");
+    }
+
+    private void openPack(PackType type)
+    {
+        DeckscapeState state = store.load();
+        if (!hasServerConfig() || !state.isLinked())
+        {
+            notifier.notify("Link Deckscape to your website account before opening packs.");
+            return;
+        }
+        panel.hideDialog();
+        JsonObject payload = new JsonObject();
+        payload.addProperty("type", type.name());
+        syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), "open_pack", payload)
+            .thenAccept(response -> SwingUtilities.invokeLater(() -> {
+                List<DeckscapeCard> revealed = new ArrayList<>();
+                if (response.has("revealed"))
+                {
+                    for (JsonElement element : response.getAsJsonArray("revealed"))
+                    {
+                        DeckscapeCard card = CardCatalog.byId(element.getAsJsonObject().get("id").getAsString());
+                        if (card != null) revealed.add(card);
+                    }
+                }
+                DeckscapeState current = store.load();
+                if (response.has("state")) updateLocalState(current, response.getAsJsonObject("state"));
+                current.setLastSyncAt(System.currentTimeMillis());
+                store.save();
+                panel.refresh();
+                if (revealed.size() == 5) packRevealOverlay.showPack(type, revealed);
+                else notifier.notify("The pack opened, but this plugin version could not display every card. Your collection is safe and synchronized.");
+            }))
+            .exceptionally(error -> { log.warn("Failed to open pack", error); notifier.notify("Deckscape could not open that pack. Nothing was opened locally."); return null; });
     }
 
     private void syncWithServer()
     {
-        if (config.apiUrl().isEmpty() || config.apiKey().isEmpty()) return;
         DeckscapeState state = store.load();
-        if (!state.isLinked()) return;
+        if (!hasServerConfig() || !state.isLinked() || !syncInFlight.compareAndSet(false, true)) return;
         syncClient.request(config.apiUrl(), config.apiKey(), state.getDeviceToken(), "get_state", null)
-            .thenAccept(response -> {
-                if (response.has("state"))
+            .thenAccept(response -> SwingUtilities.invokeLater(() -> {
+                try
                 {
-                    JsonObject serverState = response.getAsJsonObject("state");
-                    SwingUtilities.invokeLater(() -> {
-                        updateLocalState(state, serverState);
-                        store.save();
-                        panel.refresh();
-                    });
+                    DeckscapeState current = store.load();
+                    if (response.has("state")) updateLocalState(current, response.getAsJsonObject("state"));
+                    current.setLastSyncAt(System.currentTimeMillis());
+                    store.save();
+                    panel.refresh();
                 }
-            })
-            .exceptionally(ex -> {
-                log.warn("Deckscape sync failed: ", ex);
-                return null;
-            });
+                finally { syncInFlight.set(false); }
+            }))
+            .exceptionally(error -> { syncInFlight.set(false); log.warn("Deckscape sync failed", error); return null; });
     }
 
-    private void pairWithServer(String code)
+    private boolean hasServerConfig()
     {
-        syncClient.pair(config.apiUrl(), config.apiKey(), code).thenAccept(response -> {
-            if (!response.has("deviceToken")) return;
-            SwingUtilities.invokeLater(() -> {
-                DeckscapeState state = store.load();
-                state.setDeviceToken(response.get("deviceToken").getAsString());
-                if (response.has("state")) updateLocalState(state, response.getAsJsonObject("state"));
-                store.save(); panel.refresh(); notifier.notify("Deckscape RuneLite account linked.");
-            });
-        }).exceptionally(ex -> { log.warn("Deckscape pairing failed", ex); notifier.notify("Deckscape pairing failed. Check the code and try again."); return null; });
+        return config.apiUrl() != null && !config.apiUrl().isEmpty() && config.apiKey() != null && !config.apiKey().isEmpty();
     }
 
     private void updateLocalState(DeckscapeState state, JsonObject serverState)
@@ -255,38 +361,30 @@ public final class DeckscapePlugin extends Plugin
         if (serverState.has("catalog")) CardCatalog.replaceFromServer(serverState.getAsJsonArray("catalog"));
         if (serverState.has("packs"))
         {
-            JsonObject packsObj = serverState.getAsJsonObject("packs");
-            for (PackType type : PackType.values())
-            {
-                String key = type.name();
-                int qty = packsObj.has(key) ? packsObj.get(key).getAsInt() : 0;
-                state.getPacks().put(type, qty);
-            }
+            JsonObject packs = serverState.getAsJsonObject("packs");
+            for (PackType type : PackType.values()) state.getPacks().put(type, packs.has(type.name()) ? packs.get(type.name()).getAsInt() : 0);
         }
-
         if (serverState.has("collection"))
         {
-            JsonObject collObj = serverState.getAsJsonObject("collection");
             state.getCollection().clear();
-            for (java.util.Map.Entry<String, JsonElement> entry : collObj.entrySet())
-            {
+            for (Map.Entry<String, JsonElement> entry : serverState.getAsJsonObject("collection").entrySet())
                 state.getCollection().put(entry.getKey(), entry.getValue().getAsInt());
-            }
         }
-        
         if (serverState.has("claimedTiers"))
         {
             state.getCompletedChallenges().clear();
-            for (JsonElement tier : serverState.getAsJsonArray("claimedTiers"))
-            {
-                state.getCompletedChallenges().add(tier.getAsString());
-            }
+            for (JsonElement tier : serverState.getAsJsonArray("claimedTiers")) state.getCompletedChallenges().add(tier.getAsString());
         }
         if (serverState.has("challengeProgress"))
         {
             state.getChallengeProgress().clear();
-            for (java.util.Map.Entry<String, JsonElement> entry : serverState.getAsJsonObject("challengeProgress").entrySet())
+            for (Map.Entry<String, JsonElement> entry : serverState.getAsJsonObject("challengeProgress").entrySet())
                 state.getChallengeProgress().put(entry.getKey(), entry.getValue().getAsInt());
+        }
+        if (serverState.has("runelite"))
+        {
+            JsonObject runelite = serverState.getAsJsonObject("runelite");
+            if (runelite.has("xpTowardsPack")) state.setXpTowardsPack(runelite.get("xpTowardsPack").getAsInt());
         }
     }
 }
