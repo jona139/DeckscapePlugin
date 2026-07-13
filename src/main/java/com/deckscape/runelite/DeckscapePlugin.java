@@ -284,7 +284,34 @@ public final class DeckscapePlugin extends Plugin
                     flushPendingEvents();
                 }
             }))
-            .exceptionally(error -> { eventInFlight.set(false); log.warn("Deckscape event retained for retry: " + item.getEventId(), error); return null; });
+            .exceptionally(error -> { handleEventFailure(item, error); return null; });
+    }
+
+    private void handleEventFailure(PendingSyncEvent item, Throwable error)
+    {
+        Throwable cause = error;
+        while (cause.getCause() != null) cause = cause.getCause();
+        if (!(cause instanceof DeckscapeSyncClient.HttpException)
+            || !((DeckscapeSyncClient.HttpException) cause).isPermanentValidationFailure())
+        {
+            eventInFlight.set(false);
+            log.warn("Deckscape event retained for retry: " + item.getEventId(), error);
+            return;
+        }
+
+        log.warn("Discarding permanently rejected Deckscape event {}: {}", item.getEventId(), cause.getMessage());
+        SwingUtilities.invokeLater(() -> {
+            DeckscapeState current = store.load();
+            synchronized (current)
+            {
+                current.getPendingEvents().removeIf(event -> item.getEventId().equals(event.getEventId()));
+                store.save();
+            }
+            eventInFlight.set(false);
+            panel.refresh();
+            notifier.notify("Deckscape skipped an invalid queued event and resumed synchronization.");
+            flushPendingEvents();
+        });
     }
 
     private void showAwardedPacks(JsonObject response)

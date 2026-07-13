@@ -26,6 +26,22 @@ public final class DeckscapeSyncClient
     private final OkHttpClient httpClient;
     private final Gson gson = new Gson();
 
+    public static final class HttpException extends Exception
+    {
+        private final int statusCode;
+
+        private HttpException(int statusCode, String message)
+        {
+            super(message);
+            this.statusCode = statusCode;
+        }
+
+        public boolean isPermanentValidationFailure()
+        {
+            return statusCode == 400 || statusCode == 422;
+        }
+    }
+
     @Inject
     public DeckscapeSyncClient(OkHttpClient httpClient)
     {
@@ -71,11 +87,11 @@ public final class DeckscapeSyncClient
                         try {
                             JsonObject errObj = gson.fromJson(err, JsonObject.class);
                             if (errObj.has("error")) {
-                                future.completeExceptionally(new Exception(errObj.get("error").getAsString()));
+                                future.completeExceptionally(new HttpException(r.code(), errObj.get("error").getAsString()));
                                 return;
                             }
                         } catch (Exception ignored) {}
-                        future.completeExceptionally(new Exception("HTTP " + r.code() + ": " + err));
+                        future.completeExceptionally(new HttpException(r.code(), "HTTP " + r.code() + ": " + err));
                         return;
                     }
                     String bodyStr = r.body() != null ? r.body().string() : "{}";

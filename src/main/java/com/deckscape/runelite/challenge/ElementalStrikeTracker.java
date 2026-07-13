@@ -3,6 +3,7 @@ package com.deckscape.runelite.challenge;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.InventoryID;
 import net.runelite.api.Item;
@@ -41,7 +42,7 @@ public final class ElementalStrikeTracker
         ElementalSpell spell = ElementalSpell.fromGraphic(graphicId);
         if (spell != null)
         {
-            pendingCast = new PendingCast(spell, client.getTickCount(), calculateMaxHit(spell.baseMaxHit));
+            pendingCast = new PendingCast(spell, client.getTickCount(), calculateMaxHit(spell.baseMaxHit), client.getLocalPlayer().getInteracting());
         }
     }
 
@@ -53,12 +54,12 @@ public final class ElementalStrikeTracker
             pendingCast = null;
             return;
         }
-        if (!event.getHitsplat().isMine()) return;
+        if (!event.getHitsplat().isMine() || cast.target == null || event.getActor() != cast.target) return;
         
         int damage = event.getHitsplat().getAmount();
         pendingCast = null;
         
-        if (damage >= cast.maxHit && completionHandler != null)
+        if (damage == cast.maxHit && completionHandler != null)
         {
             completionHandler.accept(new VerifiedRuneLiteChallengeEvent(cast.spell.contractName, damage, cast.maxHit));
         }
@@ -115,12 +116,14 @@ public final class ElementalStrikeTracker
         private final ElementalSpell spell;
         private final int tick;
         private final int maxHit;
+        private final Actor target;
 
-        private PendingCast(ElementalSpell spell, int tick, int maxHit)
+        private PendingCast(ElementalSpell spell, int tick, int maxHit, Actor target)
         {
             this.spell = spell;
             this.tick = tick;
             this.maxHit = maxHit;
+            this.target = target;
         }
     }
 }
