@@ -3,11 +3,9 @@ package com.deckscape.runelite;
 import com.deckscape.runelite.ui.DeckscapeImages;
 import com.deckscape.runelite.ui.DeckscapePalette;
 import java.awt.AlphaComposite;
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -63,8 +61,9 @@ public final class ChallengeCompletionOverlay extends Overlay
         int canvasWidth = client.getCanvasWidth();
         int centerX = canvasWidth / 2;
         int centerY = Math.max(70, client.getCanvasHeight() / 6);
-        int width = Math.min(470, canvasWidth - 30);
-        int height = Math.round(126 * open);
+        int width = Math.min(320, canvasWidth - 30);
+        int fullHeight = 104;
+        int height = Math.round(fullHeight * open);
 
         Graphics2D g = (Graphics2D) graphics.create();
         try
@@ -78,38 +77,43 @@ public final class ChallengeCompletionOverlay extends Overlay
 
             int x = centerX - width / 2;
             int y = centerY;
-            g.setColor(new Color(8, 7, 5, 238));
-            g.fillRoundRect(x, y, width, height, 10, 10);
-            g.setPaint(new java.awt.GradientPaint(x, y, new Color(213, 157, 42, 58), x + width, y + height, new Color(23, 17, 10, 5)));
-            g.fillRoundRect(x + 3, y + 3, width - 6, Math.max(0, height - 6), 8, 8);
-            g.setColor(DeckscapePalette.BRASS);
-            g.setStroke(new BasicStroke(2f));
-            g.drawRoundRect(x, y, width, height, 10, 10);
+            BufferedImage panel = DeckscapeImages.load("/background.png");
+            if (panel != null)
+            {
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                g.drawImage(panel, x, y, width, height, null);
+            }
+            else
+            {
+                g.setColor(new Color(8, 7, 5, 238));
+                g.fillRoundRect(x, y, width, height, 10, 10);
+            }
             if (open < .72f) return null;
 
             float textAlpha = Math.min(1f, (open - .72f) / .28f);
             g.setComposite(AlphaComposite.SrcOver.derive(alpha * textAlpha));
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             BufferedImage art = DeckscapeImages.load("/com/deckscape/runelite/cards/fire_strike.png");
-            int artSize = 86;
+            int artSize = 62;
             if (art != null)
             {
                 g.setColor(new Color(255, 202, 72, 90));
-                g.fillRoundRect(x + 16, y + 18, artSize, artSize, 8, 8);
-                g.drawImage(art, x + 20, y + 22, artSize - 8, artSize - 8, null);
+                g.fillRoundRect(x + 14, y + (fullHeight - artSize) / 2, artSize, artSize, 8, 8);
+                g.drawImage(art, x + 17, y + (fullHeight - artSize) / 2 + 3, artSize - 6, artSize - 6, null);
             }
-            int textX = x + 120;
+            int textX = x + 14 + artSize + 12;
             g.setColor(new Color(184, 151, 73));
-            g.setFont(new Font("SansSerif", Font.BOLD, 10));
-            g.drawString("OSRS CHALLENGE COMPLETE", textX, y + 29);
+            g.setFont(new Font("SansSerif", Font.BOLD, 9));
+            g.drawString("OSRS CHALLENGE COMPLETE", textX, y + 26);
             g.setColor(DeckscapePalette.GOLD);
-            g.setFont(new Font("Serif", Font.BOLD, 20));
-            g.drawString(title, textX, y + 58);
+            g.setFont(new Font("Serif", Font.BOLD, 16));
+            g.drawString(title, textX, y + 47);
             g.setColor(DeckscapePalette.PARCHMENT);
-            g.setFont(new Font("SansSerif", Font.PLAIN, 12));
-            g.drawString(reward, textX, y + 82);
+            g.setFont(new Font("SansSerif", Font.PLAIN, 10));
+            g.drawString(reward, textX, y + 66);
             g.setColor(new Color(164, 145, 103));
-            g.setFont(new Font("SansSerif", Font.BOLD, 10));
-            g.drawString("Progress saved to your Deckscape account", textX, y + 103);
+            g.setFont(new Font("SansSerif", Font.BOLD, 9));
+            g.drawString("Saved to your Deckscape account", textX, y + 86);
         }
         finally { g.dispose(); }
         return null;

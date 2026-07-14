@@ -1,14 +1,13 @@
 package com.deckscape.runelite;
 
 import com.deckscape.runelite.model.PackType;
+import com.deckscape.runelite.ui.CardPainter;
 import com.deckscape.runelite.ui.DeckscapeImages;
 import com.deckscape.runelite.ui.DeckscapePalette;
 import java.awt.AlphaComposite;
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -22,7 +21,10 @@ import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 
-/** High-priority in-game reward banner, queued so simultaneous XP rolls are never hidden. */
+/**
+ * Compact in-game reward toast on the bundled OSRS-style panel art (background.png),
+ * queued so simultaneous XP rolls are never hidden.
+ */
 @Singleton
 public final class PackRewardOverlay extends Overlay
 {
@@ -31,11 +33,15 @@ public final class PackRewardOverlay extends Overlay
     private static final long OUTRO = 520L;
     private static final long TOTAL = INTRO + HOLD + OUTRO;
 
+    private static final int WIDTH = 244;
+    private static final int HEIGHT = 112;
+
     private final Client client;
     private final DeckscapeConfig config;
     private final Deque<PackType> queue = new ArrayDeque<>();
     private PackType active;
     private long startedAt;
+    private BufferedImage packIcon;
 
     @Inject
     public PackRewardOverlay(Client client, DeckscapeConfig config)
@@ -57,6 +63,7 @@ public final class PackRewardOverlay extends Overlay
     {
         active = queue.pollFirst();
         startedAt = active == null ? 0L : System.currentTimeMillis();
+        packIcon = active == null ? null : CardPainter.packImage(active, 40, 58);
     }
 
     @Override
@@ -72,28 +79,36 @@ public final class PackRewardOverlay extends Overlay
         float alpha = elapsed < INTRO ? ease(elapsed / (float) INTRO)
             : elapsed > INTRO + HOLD ? 1f - ease((elapsed - INTRO - HOLD) / (float) OUTRO) : 1f;
         float rise = 1f - ease(Math.min(1f, elapsed / (float) INTRO));
-        int width = Math.min(390, client.getCanvasWidth() - 30);
-        int height = 118;
+        int width = Math.min(WIDTH, client.getCanvasWidth() - 30);
+        int height = HEIGHT;
         int x = (client.getCanvasWidth() - width) / 2;
-        int y = 42 + Math.round(rise * -30f);
+        int y = 38 + Math.round(rise * -26f);
 
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graphics.setComposite(AlphaComposite.SrcOver.derive(alpha));
-        graphics.setColor(new Color(8, 7, 5, 225));
-        graphics.fillRoundRect(x, y, width, height, 12, 12);
-        graphics.setPaint(new java.awt.GradientPaint(x, y, new Color(255, 211, 91, 70), x + width, y + height, new Color(74, 43, 8, 10)));
-        graphics.fillRoundRect(x + 3, y + 3, width - 6, height - 6, 10, 10);
-        graphics.setColor(DeckscapePalette.BRASS);
-        graphics.setStroke(new BasicStroke(2f));
-        graphics.drawRoundRect(x, y, width, height, 12, 12);
-        graphics.setColor(new Color(255, 231, 155, 110));
-        graphics.drawLine(x + 12, y + 8, x + width - 12, y + 8);
 
-        BufferedImage pack = DeckscapeImages.load(DeckscapeImages.packResource(active));
-        if (pack != null) graphics.drawImage(pack, x + 18, y + 13, 70, 90, null);
-        drawText(graphics, "PACK UNLOCKED", x + 105, y + 39, new Font("Serif", Font.BOLD, 18), DeckscapePalette.GOLD);
-        drawText(graphics, "+1 " + active.getDisplayName(), x + 105, y + 68, new Font("SansSerif", Font.BOLD, 14), DeckscapePalette.PARCHMENT);
-        drawText(graphics, "Open it from the Deckscape panel", x + 105, y + 91, new Font("SansSerif", Font.PLAIN, 11), DeckscapePalette.MUTED);
+        BufferedImage panel = DeckscapeImages.load("/background.png");
+        if (panel != null)
+        {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            graphics.drawImage(panel, x, y, width, height, null);
+        }
+        else
+        {
+            graphics.setColor(new Color(8, 7, 5, 225));
+            graphics.fillRoundRect(x, y, width, height, 12, 12);
+        }
+
+        if (packIcon != null)
+        {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            graphics.drawImage(packIcon, x + 14, y + (height - packIcon.getHeight()) / 2, null);
+        }
+        int textX = x + 14 + (packIcon == null ? 0 : packIcon.getWidth() + 10);
+        drawText(graphics, "Pack unlocked!", textX, y + 34, new Font("Serif", Font.BOLD, 15), DeckscapePalette.GOLD);
+        drawText(graphics, "+1 " + active.getDisplayName(), textX, y + 57, new Font("SansSerif", Font.BOLD, 12), DeckscapePalette.PARCHMENT);
+        drawText(graphics, "Open it in the Deckscape", textX, y + 78, new Font("SansSerif", Font.PLAIN, 10), DeckscapePalette.MUTED);
+        drawText(graphics, "panel or Website", textX, y + 91, new Font("SansSerif", Font.PLAIN, 10), DeckscapePalette.MUTED);
         graphics.setComposite(AlphaComposite.SrcOver);
         return null;
     }

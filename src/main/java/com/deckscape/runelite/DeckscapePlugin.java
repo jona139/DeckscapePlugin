@@ -70,6 +70,8 @@ public final class DeckscapePlugin extends Plugin
     @Inject private Notifier notifier;
     @Inject private DeckscapeSyncClient syncClient;
     @Inject private ScheduledExecutorService executor;
+    @Inject private net.runelite.client.input.MouseManager mouseManager;
+    @Inject private PackRevealInputListener packRevealInputListener;
 
     private NavigationButton navigationButton;
     private ScheduledFuture<?> maintenanceTask;
@@ -89,6 +91,7 @@ public final class DeckscapePlugin extends Plugin
         overlayManager.add(completionOverlay);
         overlayManager.add(packRewardOverlay);
         overlayManager.add(packRevealOverlay);
+        mouseManager.registerMouseListener(packRevealInputListener);
         BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/com/deckscape/runelite/icon.png");
         navigationButton = NavigationButton.builder().tooltip("Deckscape").icon(icon).priority(7).panel(panel).build();
         clientToolbar.addNavigation(navigationButton);
@@ -114,6 +117,7 @@ public final class DeckscapePlugin extends Plugin
         overlayManager.remove(completionOverlay);
         overlayManager.remove(packRewardOverlay);
         overlayManager.remove(packRevealOverlay);
+        mouseManager.unregisterMouseListener(packRevealInputListener);
         if (navigationButton != null) clientToolbar.removeNavigation(navigationButton);
     }
 
