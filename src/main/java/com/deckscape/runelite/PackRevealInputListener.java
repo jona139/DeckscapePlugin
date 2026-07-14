@@ -1,27 +1,26 @@
 package com.deckscape.runelite;
 
-import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import net.runelite.api.Client;
 import net.runelite.client.input.MouseAdapter;
 
 /**
- * Routes canvas clicks to the pack ceremony while it is on screen, translating
- * stretched-mode screen coordinates back into canvas space for hit-testing.
+ * Routes canvas clicks to the pack ceremony while it is on screen.
+ *
+ * <p>MouseManager listeners receive the event returned by the listeners ahead
+ * of them. Stretched Mode registers its coordinate translator at position zero,
+ * so events reaching this listener are already in canvas space.</p>
  */
 @Singleton
 public final class PackRevealInputListener extends MouseAdapter
 {
-    private final Client client;
     private final PackRevealOverlay overlay;
 
     @Inject
-    public PackRevealInputListener(Client client, PackRevealOverlay overlay)
+    public PackRevealInputListener(PackRevealOverlay overlay)
     {
-        this.client = client;
         this.overlay = overlay;
     }
 
@@ -55,21 +54,8 @@ public final class PackRevealInputListener extends MouseAdapter
         return event;
     }
 
-    private Point canvasPoint(MouseEvent event)
+    static Point canvasPoint(MouseEvent event)
     {
-        Point point = event.getPoint();
-        if (!client.isStretchedEnabled())
-        {
-            return point;
-        }
-        Dimension stretched = client.getStretchedDimensions();
-        Dimension real = client.getRealDimensions();
-        if (stretched.width <= 0 || stretched.height <= 0)
-        {
-            return point;
-        }
-        return new Point(
-            (int) (point.x * real.getWidth() / stretched.width),
-            (int) (point.y * real.getHeight() / stretched.height));
+        return event.getPoint();
     }
 }
