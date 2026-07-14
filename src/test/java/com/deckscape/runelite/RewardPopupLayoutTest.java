@@ -9,6 +9,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class RewardPopupLayoutTest
 {
     @Test
+    void scalesPopupAndHoldDurationsAsRequested()
+    {
+        assertEquals(161, RewardPopupLayout.WIDTH);
+        assertEquals(74, RewardPopupLayout.HEIGHT);
+        assertEquals(6250L, RewardPopupLayout.linger(2500L));
+        assertEquals(8500L, RewardPopupLayout.linger(3400L));
+    }
+
+    @Test
     void centersFixedModePopupInsideGameViewport()
     {
         Client client = clientWithGeometry(765, 4, 512);

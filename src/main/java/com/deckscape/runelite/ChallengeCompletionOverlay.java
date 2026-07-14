@@ -23,7 +23,7 @@ public final class ChallengeCompletionOverlay extends Overlay
 {
     private static final long SWEEP = 480L;
     private static final long OPEN = 620L;
-    private static final long HOLD = 3400L;
+    private static final long HOLD = RewardPopupLayout.linger(3400L);
     private static final long OUT = 700L;
     private static final long TOTAL = SWEEP + OPEN + HOLD + OUT;
     private final Client client;
@@ -94,26 +94,29 @@ public final class ChallengeCompletionOverlay extends Overlay
             g.setComposite(AlphaComposite.SrcOver.derive(alpha * textAlpha));
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             BufferedImage art = DeckscapeImages.load("/com/deckscape/runelite/cards/fire_strike.png");
-            int artSize = 34;
+            int artSize = RewardPopupLayout.scale(34);
             if (art != null)
             {
                 g.setColor(new Color(255, 202, 72, 90));
-                g.fillRoundRect(x + 7, y + (fullHeight - artSize) / 2, artSize, artSize, 5, 5);
-                g.drawImage(art, x + 9, y + (fullHeight - artSize) / 2 + 2, artSize - 4, artSize - 4, null);
+                g.fillRoundRect(x + RewardPopupLayout.scale(7), y + (fullHeight - artSize) / 2,
+                    artSize, artSize, RewardPopupLayout.scale(5), RewardPopupLayout.scale(5));
+                g.drawImage(art, x + RewardPopupLayout.scale(9),
+                    y + (fullHeight - artSize) / 2 + RewardPopupLayout.scale(2),
+                    artSize - RewardPopupLayout.scale(4), artSize - RewardPopupLayout.scale(4), null);
             }
-            int textX = x + 7 + artSize + 6;
+            int textX = x + RewardPopupLayout.scale(7) + artSize + RewardPopupLayout.scale(6);
             g.setColor(new Color(184, 151, 73));
-            g.setFont(new Font("SansSerif", Font.BOLD, 6));
-            g.drawString("CHALLENGE COMPLETE", textX, y + 14);
+            g.setFont(new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(6)));
+            g.drawString("CHALLENGE COMPLETE", textX, y + RewardPopupLayout.scale(14));
             g.setColor(DeckscapePalette.GOLD);
-            g.setFont(new Font("Serif", Font.BOLD, 9));
-            g.drawString(title, textX, y + 29);
+            g.setFont(new Font("Serif", Font.BOLD, RewardPopupLayout.scale(9)));
+            g.drawString(title, textX, y + RewardPopupLayout.scale(29));
             g.setColor(DeckscapePalette.PARCHMENT);
-            g.setFont(new Font("SansSerif", Font.PLAIN, 6));
-            g.drawString(reward, textX, y + 41);
+            g.setFont(new Font("SansSerif", Font.PLAIN, RewardPopupLayout.scale(6)));
+            g.drawString(reward, textX, y + RewardPopupLayout.scale(41));
             g.setColor(new Color(164, 145, 103));
-            g.setFont(new Font("SansSerif", Font.BOLD, 6));
-            g.drawString("Saved to Deckscape", textX, y + 52);
+            g.setFont(new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(6)));
+            g.drawString("Saved to Deckscape", textX, y + RewardPopupLayout.scale(52));
         }
         finally { g.dispose(); }
         return null;

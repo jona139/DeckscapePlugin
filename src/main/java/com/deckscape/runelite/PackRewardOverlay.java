@@ -29,7 +29,7 @@ import net.runelite.client.ui.overlay.OverlayPriority;
 public final class PackRewardOverlay extends Overlay
 {
     private static final long INTRO = 420L;
-    private static final long HOLD = 2500L;
+    private static final long HOLD = RewardPopupLayout.linger(2500L);
     private static final long OUTRO = 520L;
     private static final long TOTAL = INTRO + HOLD + OUTRO;
 
@@ -60,7 +60,8 @@ public final class PackRewardOverlay extends Overlay
     {
         active = queue.pollFirst();
         startedAt = active == null ? 0L : System.currentTimeMillis();
-        packIcon = active == null ? null : CardPainter.packImage(active, 22, 32);
+        packIcon = active == null ? null : CardPainter.packImage(active,
+            RewardPopupLayout.scale(22), RewardPopupLayout.scale(32));
     }
 
     @Override
@@ -99,12 +100,16 @@ public final class PackRewardOverlay extends Overlay
         if (packIcon != null)
         {
             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            graphics.drawImage(packIcon, x + 7, y + (height - packIcon.getHeight()) / 2, null);
+            graphics.drawImage(packIcon, x + RewardPopupLayout.scale(7), y + (height - packIcon.getHeight()) / 2, null);
         }
-        int textX = x + 7 + (packIcon == null ? 0 : packIcon.getWidth() + 5);
-        drawText(graphics, "Pack unlocked!", textX, y + 19, new Font("Serif", Font.BOLD, 10), DeckscapePalette.GOLD);
-        drawText(graphics, "+1 " + active.getDisplayName(), textX, y + 34, new Font("SansSerif", Font.BOLD, 8), DeckscapePalette.PARCHMENT);
-        drawText(graphics, "Open in Deckscape", textX, y + 48, new Font("SansSerif", Font.PLAIN, 7), DeckscapePalette.MUTED);
+        int textX = x + RewardPopupLayout.scale(7)
+            + (packIcon == null ? 0 : packIcon.getWidth() + RewardPopupLayout.scale(5));
+        drawText(graphics, "Pack unlocked!", textX, y + RewardPopupLayout.scale(19),
+            new Font("Serif", Font.BOLD, RewardPopupLayout.scale(10)), DeckscapePalette.GOLD);
+        drawText(graphics, "+1 " + active.getDisplayName(), textX, y + RewardPopupLayout.scale(34),
+            new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(8)), DeckscapePalette.PARCHMENT);
+        drawText(graphics, "Open in Deckscape", textX, y + RewardPopupLayout.scale(48),
+            new Font("SansSerif", Font.PLAIN, RewardPopupLayout.scale(7)), DeckscapePalette.MUTED);
         graphics.setComposite(AlphaComposite.SrcOver);
         return null;
     }
