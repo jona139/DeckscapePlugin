@@ -33,9 +33,6 @@ public final class PackRewardOverlay extends Overlay
     private static final long OUTRO = 520L;
     private static final long TOTAL = INTRO + HOLD + OUTRO;
 
-    private static final int WIDTH = 244;
-    private static final int HEIGHT = 112;
-
     private final Client client;
     private final DeckscapeConfig config;
     private final Deque<PackType> queue = new ArrayDeque<>();
@@ -63,7 +60,7 @@ public final class PackRewardOverlay extends Overlay
     {
         active = queue.pollFirst();
         startedAt = active == null ? 0L : System.currentTimeMillis();
-        packIcon = active == null ? null : CardPainter.packImage(active, 40, 58);
+        packIcon = active == null ? null : CardPainter.packImage(active, 22, 32);
     }
 
     @Override
@@ -79,10 +76,10 @@ public final class PackRewardOverlay extends Overlay
         float alpha = elapsed < INTRO ? ease(elapsed / (float) INTRO)
             : elapsed > INTRO + HOLD ? 1f - ease((elapsed - INTRO - HOLD) / (float) OUTRO) : 1f;
         float rise = 1f - ease(Math.min(1f, elapsed / (float) INTRO));
-        int width = Math.min(WIDTH, client.getCanvasWidth() - 30);
-        int height = HEIGHT;
+        int width = Math.min(RewardPopupLayout.WIDTH, client.getCanvasWidth() - 12);
+        int height = RewardPopupLayout.HEIGHT;
         int x = (client.getCanvasWidth() - width) / 2;
-        int y = 38 + Math.round(rise * -26f);
+        int y = RewardPopupLayout.TOP + Math.round(rise * -14f);
 
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graphics.setComposite(AlphaComposite.SrcOver.derive(alpha));
@@ -102,13 +99,12 @@ public final class PackRewardOverlay extends Overlay
         if (packIcon != null)
         {
             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            graphics.drawImage(packIcon, x + 14, y + (height - packIcon.getHeight()) / 2, null);
+            graphics.drawImage(packIcon, x + 7, y + (height - packIcon.getHeight()) / 2, null);
         }
-        int textX = x + 14 + (packIcon == null ? 0 : packIcon.getWidth() + 10);
-        drawText(graphics, "Pack unlocked!", textX, y + 34, new Font("Serif", Font.BOLD, 15), DeckscapePalette.GOLD);
-        drawText(graphics, "+1 " + active.getDisplayName(), textX, y + 57, new Font("SansSerif", Font.BOLD, 12), DeckscapePalette.PARCHMENT);
-        drawText(graphics, "Open it in the Deckscape", textX, y + 78, new Font("SansSerif", Font.PLAIN, 10), DeckscapePalette.MUTED);
-        drawText(graphics, "panel or Website", textX, y + 91, new Font("SansSerif", Font.PLAIN, 10), DeckscapePalette.MUTED);
+        int textX = x + 7 + (packIcon == null ? 0 : packIcon.getWidth() + 5);
+        drawText(graphics, "Pack unlocked!", textX, y + 19, new Font("Serif", Font.BOLD, 10), DeckscapePalette.GOLD);
+        drawText(graphics, "+1 " + active.getDisplayName(), textX, y + 34, new Font("SansSerif", Font.BOLD, 8), DeckscapePalette.PARCHMENT);
+        drawText(graphics, "Open in Deckscape", textX, y + 48, new Font("SansSerif", Font.PLAIN, 7), DeckscapePalette.MUTED);
         graphics.setComposite(AlphaComposite.SrcOver);
         return null;
     }

@@ -60,9 +60,9 @@ public final class ChallengeCompletionOverlay extends Overlay
         float alpha = elapsed > TOTAL - OUT ? 1f - ease((elapsed - (TOTAL - OUT)) / (float) OUT) : 1f;
         int canvasWidth = client.getCanvasWidth();
         int centerX = canvasWidth / 2;
-        int centerY = Math.max(70, client.getCanvasHeight() / 6);
-        int width = Math.min(320, canvasWidth - 30);
-        int fullHeight = 104;
+        int centerY = RewardPopupLayout.TOP;
+        int width = Math.min(RewardPopupLayout.WIDTH, canvasWidth - 12);
+        int fullHeight = RewardPopupLayout.HEIGHT;
         int height = Math.round(fullHeight * open);
 
         Graphics2D g = (Graphics2D) graphics.create();
@@ -94,26 +94,26 @@ public final class ChallengeCompletionOverlay extends Overlay
             g.setComposite(AlphaComposite.SrcOver.derive(alpha * textAlpha));
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             BufferedImage art = DeckscapeImages.load("/com/deckscape/runelite/cards/fire_strike.png");
-            int artSize = 62;
+            int artSize = 34;
             if (art != null)
             {
                 g.setColor(new Color(255, 202, 72, 90));
-                g.fillRoundRect(x + 14, y + (fullHeight - artSize) / 2, artSize, artSize, 8, 8);
-                g.drawImage(art, x + 17, y + (fullHeight - artSize) / 2 + 3, artSize - 6, artSize - 6, null);
+                g.fillRoundRect(x + 7, y + (fullHeight - artSize) / 2, artSize, artSize, 5, 5);
+                g.drawImage(art, x + 9, y + (fullHeight - artSize) / 2 + 2, artSize - 4, artSize - 4, null);
             }
-            int textX = x + 14 + artSize + 12;
+            int textX = x + 7 + artSize + 6;
             g.setColor(new Color(184, 151, 73));
-            g.setFont(new Font("SansSerif", Font.BOLD, 9));
-            g.drawString("OSRS CHALLENGE COMPLETE", textX, y + 26);
+            g.setFont(new Font("SansSerif", Font.BOLD, 6));
+            g.drawString("CHALLENGE COMPLETE", textX, y + 14);
             g.setColor(DeckscapePalette.GOLD);
-            g.setFont(new Font("Serif", Font.BOLD, 16));
-            g.drawString(title, textX, y + 47);
+            g.setFont(new Font("Serif", Font.BOLD, 9));
+            g.drawString(title, textX, y + 29);
             g.setColor(DeckscapePalette.PARCHMENT);
-            g.setFont(new Font("SansSerif", Font.PLAIN, 10));
-            g.drawString(reward, textX, y + 66);
+            g.setFont(new Font("SansSerif", Font.PLAIN, 6));
+            g.drawString(reward, textX, y + 41);
             g.setColor(new Color(164, 145, 103));
-            g.setFont(new Font("SansSerif", Font.BOLD, 9));
-            g.drawString("Saved to your Deckscape account", textX, y + 86);
+            g.setFont(new Font("SansSerif", Font.BOLD, 6));
+            g.drawString("Saved to Deckscape", textX, y + 52);
         }
         finally { g.dispose(); }
         return null;

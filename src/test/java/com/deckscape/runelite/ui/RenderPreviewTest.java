@@ -21,6 +21,9 @@ class RenderPreviewTest
         OUT.mkdirs();
         face("face_grayzag", CardCatalog.byId("wizard_grayzag"), 3, 200, 300);
         face("face_goblin_mail", CardCatalog.byId("goblin_mail"), 0, 200, 300);
+        face("face_imp", CardCatalog.byId("imp"), 0, 200, 300);
+        face("face_casket", CardCatalog.byId("casket"), 0, 200, 300);
+        face("face_magic_ball", CardCatalog.byId("magic_ball"), 0, 200, 300);
         face("face_smite_universal", CardCatalog.byId("smite"), 2, 200, 300);
         face("face_small_tile", CardCatalog.byId("archmage_sedridor"), 1, 124, 186);
 

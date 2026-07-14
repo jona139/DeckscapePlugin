@@ -16,6 +16,17 @@ class CardCatalogTest
     }
 
     @Test
+    void everyCardHasBundledArtwork()
+    {
+        for (DeckscapeCard card : CardCatalog.all())
+        {
+            assertTrue(card.getArtResource() != null, card.getId() + " has no art resource");
+            assertTrue(CardCatalogTest.class.getResource(card.getArtResource()) != null,
+                card.getId() + " art is not bundled: " + card.getArtResource());
+        }
+    }
+
+    @Test
     void everyPackContainsFiveEligibleCards()
     {
         Random random = new Random(42);
