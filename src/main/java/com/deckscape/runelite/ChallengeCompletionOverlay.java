@@ -58,10 +58,10 @@ public final class ChallengeCompletionOverlay extends Overlay
         float sweep = ease(Math.min(1f, elapsed / (float) SWEEP));
         float open = elapsed <= SWEEP ? 0f : ease(Math.min(1f, (elapsed - SWEEP) / (float) OPEN));
         float alpha = elapsed > TOTAL - OUT ? 1f - ease((elapsed - (TOTAL - OUT)) / (float) OUT) : 1f;
-        int canvasWidth = client.getCanvasWidth();
-        int centerX = canvasWidth / 2;
+        int viewportWidth = RewardPopupLayout.viewportWidth(client);
+        int centerX = RewardPopupLayout.centerX(client);
         int centerY = RewardPopupLayout.TOP;
-        int width = Math.min(RewardPopupLayout.WIDTH, canvasWidth - 12);
+        int width = Math.min(RewardPopupLayout.WIDTH, viewportWidth - 12);
         int fullHeight = RewardPopupLayout.HEIGHT;
         int height = Math.round(fullHeight * open);
 
@@ -70,7 +70,7 @@ public final class ChallengeCompletionOverlay extends Overlay
         {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g.setComposite(AlphaComposite.SrcOver.derive(alpha));
-            int lineWidth = Math.round((canvasWidth - 36) * sweep);
+            int lineWidth = Math.round((viewportWidth - 36) * sweep);
             g.setPaint(new java.awt.GradientPaint(centerX - lineWidth / 2f, 0, new Color(115, 69, 13, 0), centerX, 0, DeckscapePalette.GOLD, true));
             g.fillRect(centerX - lineWidth / 2, centerY - 2, lineWidth, 4);
             if (height < 6) return null;

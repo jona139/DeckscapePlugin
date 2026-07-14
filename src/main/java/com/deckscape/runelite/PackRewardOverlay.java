@@ -76,9 +76,9 @@ public final class PackRewardOverlay extends Overlay
         float alpha = elapsed < INTRO ? ease(elapsed / (float) INTRO)
             : elapsed > INTRO + HOLD ? 1f - ease((elapsed - INTRO - HOLD) / (float) OUTRO) : 1f;
         float rise = 1f - ease(Math.min(1f, elapsed / (float) INTRO));
-        int width = Math.min(RewardPopupLayout.WIDTH, client.getCanvasWidth() - 12);
+        int width = Math.min(RewardPopupLayout.WIDTH, RewardPopupLayout.viewportWidth(client) - 12);
         int height = RewardPopupLayout.HEIGHT;
-        int x = (client.getCanvasWidth() - width) / 2;
+        int x = RewardPopupLayout.centerX(client) - width / 2;
         int y = RewardPopupLayout.TOP + Math.round(rise * -14f);
 
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
