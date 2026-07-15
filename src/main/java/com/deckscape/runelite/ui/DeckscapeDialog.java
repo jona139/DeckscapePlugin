@@ -5,6 +5,7 @@ import com.deckscape.runelite.model.CardCatalog;
 import com.deckscape.runelite.model.DeckscapeCard;
 import com.deckscape.runelite.model.DeckscapeState;
 import com.deckscape.runelite.model.PackType;
+import com.deckscape.runelite.challenge.RuneLiteChallenge;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -391,7 +392,9 @@ public final class DeckscapeDialog extends JDialog
         titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         page.add(titleRow);
 
-        JLabel testRule = new JLabel("<html>Testing rule: every <b>100 XP</b> rolls for a random pack. Progress: " + state.getXpTowardsPack() + "/100 XP</html>");
+        JLabel testRule = new JLabel("<html>Every <b>" + String.format("%,d", state.getXpRewardInterval())
+            + " XP</b> rolls for a pack, Coins, or Stardust. Progress: "
+            + String.format("%,d", state.getXpTowardsPack()) + "/" + String.format("%,d", state.getXpRewardInterval()) + " XP</html>");
         testRule.setForeground(DeckscapePalette.MUTED);
         testRule.setBorder(BorderFactory.createEmptyBorder(2, 2, 8, 2));
         testRule.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -403,7 +406,10 @@ public final class DeckscapeDialog extends JDialog
         listPanel.setOpaque(false);
         listPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        PackType[] visiblePacks = { PackType.GENERAL, PackType.COMBAT, PackType.SKILLING, PackType.FACTION_MISTHALIN };
+        PackType[] visiblePacks = {
+            PackType.GENERAL, PackType.COMBAT, PackType.SKILLING,
+            PackType.FACTION_MISTHALIN, PackType.FACTION_VARLAMORE, PackType.FACTION_KANDARIN,
+        };
         for (PackType type : visiblePacks)
         {
             JPanel row = new JPanel(new BorderLayout(15, 0));
@@ -445,44 +451,45 @@ public final class DeckscapeDialog extends JDialog
     private JPanel challengePage()
     {
         DeckscapeState state = store.load();
-        boolean done = state.getCompletedChallenges().contains("elemental_strike_max_hit:gold");
         JPanel page = page();
-        page.add(sectionTitle("OSRS linked challenges"));
+        page.add(sectionTitle("OSRS gold-frame challenges"));
         page.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        JPanel task = new JPanel();
-        task.setLayout(new BoxLayout(task, BoxLayout.Y_AXIS));
-        task.setBackground(done ? new Color(50, 43, 24) : DeckscapePalette.PANEL);
-        task.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(done ? DeckscapePalette.BRASS : new Color(91, 82, 64), 2),
-            BorderFactory.createEmptyBorder(16, 16, 16, 16)
-        ));
-        task.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel title = new JLabel(done ? "✓ Perfectly Elemental" : "○ Perfectly Elemental");
-        title.setForeground(done ? DeckscapePalette.GOLD : DeckscapePalette.PARCHMENT);
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
-        task.add(title);
-        task.add(Box.createRigidArea(new Dimension(0, 8)));
-
-        JLabel description = new JLabel("<html>Deal your maximum possible hit with Wind, Water, Earth, or Fire Strike.<br><br><b>Reward:</b> Elemental Strike gold trim card cosmetics</html>");
-        description.setForeground(DeckscapePalette.MUTED);
-        description.setFont(description.getFont().deriveFont(13f));
-        task.add(description);
-
-        page.add(task);
-        page.add(Box.createRigidArea(new Dimension(0, 12)));
-
-        for (java.util.Map.Entry<String, Integer> entry : state.getChallengeProgress().entrySet())
+        for (RuneLiteChallenge challenge : RuneLiteChallenge.ALL)
         {
-            JLabel progress = new JLabel(entry.getKey().replace('_', ' ') + ": " + entry.getValue());
-            progress.setForeground(DeckscapePalette.PARCHMENT);
-            progress.setFont(progress.getFont().deriveFont(12f));
-            page.add(progress);
-            page.add(Box.createRigidArea(new Dimension(0, 4)));
+            int progress = Math.min(challenge.getTarget(), state.getChallengeProgress().getOrDefault(challenge.getMetric(), 0));
+            boolean verified = progress >= challenge.getTarget();
+            boolean claimed = state.getCompletedChallenges().contains(challenge.getTierKey());
+            JPanel task = new JPanel();
+            task.setLayout(new BoxLayout(task, BoxLayout.Y_AXIS));
+            task.setBackground(claimed ? new Color(50, 43, 24) : DeckscapePalette.PANEL);
+            task.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(verified ? DeckscapePalette.BRASS : new Color(91, 82, 64), verified ? 2 : 1),
+                BorderFactory.createEmptyBorder(12, 14, 12, 14)));
+            task.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            String status = claimed ? "Claimed" : verified ? "Ready to claim on website" : "In progress";
+            JLabel title = new JLabel((claimed ? "✓ " : verified ? "◆ " : "○ ") + challenge.getTitle());
+            title.setForeground(verified ? DeckscapePalette.GOLD : DeckscapePalette.PARCHMENT);
+            title.setFont(title.getFont().deriveFont(Font.BOLD, 15f));
+            task.add(title);
+            task.add(Box.createRigidArea(new Dimension(0, 5)));
+
+            String progressLabel = challenge.getTarget() > 1
+                ? "<br><b>Progress:</b> " + String.format("%,d", progress) + "/" + String.format("%,d", challenge.getTarget())
+                : "";
+            JLabel description = new JLabel("<html>" + challenge.getDescription() + progressLabel
+                + "<br><b>Reward:</b> " + challenge.getReward() + "<br><b>Status:</b> " + status + "</html>");
+            description.setForeground(DeckscapePalette.MUTED);
+            description.setFont(description.getFont().deriveFont(12f));
+            task.add(description);
+            page.add(task);
+            page.add(Box.createRigidArea(new Dimension(0, 8)));
         }
 
-        JLabel note = new JLabel("<html>All values are read from your linked Deckscape account. Local state is a display cache only.</html>");
+        JLabel note = new JLabel("<html>Only verified activity on normal main-game worlds counts. "
+            + "PvP, high-risk, bounty, Leagues, Deadman, Last Man Standing, PvP Arena, beta, tournament, speedrunning, and other no-save worlds are excluded. "
+            + "Claim completed rewards from Deckscape's Challenges page.</html>");
         note.setForeground(new Color(143, 132, 108));
         note.setFont(note.getFont().deriveFont(11f));
         page.add(note);

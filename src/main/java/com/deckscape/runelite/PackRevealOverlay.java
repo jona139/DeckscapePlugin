@@ -45,6 +45,7 @@ public final class PackRevealOverlay extends Overlay
     private final ClientThread clientThread;
     private List<DeckscapeCard> cards = Collections.emptyList();
     private PackType packType = PackType.GENERAL;
+    private int stardustAward;
     private long startedAt = -1L;
     private long claimedAt = -1L;
     private long[] flipStartedAt = new long[0];
@@ -66,8 +67,14 @@ public final class PackRevealOverlay extends Overlay
 
     public synchronized void showPack(PackType type, List<DeckscapeCard> revealed)
     {
+        showPack(type, revealed, 0);
+    }
+
+    public synchronized void showPack(PackType type, List<DeckscapeCard> revealed, int stardustAward)
+    {
         this.packType = type == null ? PackType.GENERAL : type;
         this.cards = revealed == null ? Collections.emptyList() : new ArrayList<>(revealed);
+        this.stardustAward = Math.max(0, stardustAward);
         this.startedAt = System.currentTimeMillis();
         this.claimedAt = -1L;
         this.flipStartedAt = new long[cards.size()];
@@ -251,7 +258,9 @@ public final class PackRevealOverlay extends Overlay
         int revealed = 0;
         for (long at : flipStartedAt) if (at >= 0L && now - at >= FLIP_TIME / 2) revealed++;
         boolean all = revealed >= cards.size();
-        String message = all ? "Added to your shared collection" : "Click each card to reveal it · " + revealed + "/" + cards.size();
+        String message = all
+            ? "Added to your shared collection" + (stardustAward > 0 ? " + " + stardustAward + " Stardust" : "")
+            : "Click each card to reveal it - " + revealed + "/" + cards.size();
         drawCentered(g, message, canvasWidth / 2, canvasHeight - (all ? 74 : 32),
             new Font("SansSerif", Font.BOLD, 12), DeckscapePalette.PARCHMENT);
 

@@ -16,9 +16,16 @@ public final class DeckscapeCard
     private final int power;
     private final String text;
     private final String artResource;
+    private final String artUrl;
 
     public DeckscapeCard(String id, String name, String faction, Rarity rarity, Kind kind,
                          Style style, int cost, int power, String text, String artResource)
+    {
+        this(id, name, faction, rarity, kind, style, cost, power, text, artResource, null);
+    }
+
+    public DeckscapeCard(String id, String name, String faction, Rarity rarity, Kind kind,
+                         Style style, int cost, int power, String text, String artResource, String artUrl)
     {
         this.id = id;
         this.name = name;
@@ -30,6 +37,7 @@ public final class DeckscapeCard
         this.power = power;
         this.text = text;
         this.artResource = artResource;
+        this.artUrl = artUrl;
     }
 
     public String getId() { return id; }
@@ -42,4 +50,5 @@ public final class DeckscapeCard
     public int getPower() { return power; }
     public String getText() { return text; }
     public String getArtResource() { return artResource; }
+    public String getArtUrl() { return artUrl; }
 }

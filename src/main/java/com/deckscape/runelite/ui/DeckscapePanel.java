@@ -1,5 +1,6 @@
 package com.deckscape.runelite.ui;
 
+import com.deckscape.runelite.DeckscapeConfig;
 import com.deckscape.runelite.DeckscapeStore;
 import com.deckscape.runelite.model.DeckscapeState;
 import java.awt.BorderLayout;
@@ -29,6 +30,7 @@ import net.runelite.client.ui.PluginPanel;
 public final class DeckscapePanel extends PluginPanel
 {
     private final DeckscapeStore store;
+    private final DeckscapeConfig config;
     private DeckscapeDialog dialog;
     private DeckscapeDialog.OpenPackAction openPackAction;
     private Runnable syncAction;
@@ -41,10 +43,11 @@ public final class DeckscapePanel extends PluginPanel
     private final JPanel pairingBox = new JPanel();
 
     @Inject
-    public DeckscapePanel(DeckscapeStore store)
+    public DeckscapePanel(DeckscapeStore store, DeckscapeConfig config)
     {
         super(false);
         this.store = store;
+        this.config = config;
         setLayout(new BorderLayout());
         setBackground(DeckscapePalette.PANEL_DARK);
 
@@ -202,7 +205,12 @@ public final class DeckscapePanel extends PluginPanel
     {
         SwingUtilities.invokeLater(() -> {
             DeckscapeState state = store.load();
-            if (state.isLinked())
+            if (!config.dataSharingConsent())
+            {
+                statusLabel.setText("Data sharing disabled");
+                statusLabel.setForeground(new Color(190, 180, 156));
+            }
+            else if (state.isLinked())
             {
                 statusLabel.setText("● Connected to Deckscape");
                 statusLabel.setForeground(new Color(111, 204, 120));
@@ -212,14 +220,19 @@ public final class DeckscapePanel extends PluginPanel
                 statusLabel.setText("● Waiting for account link");
                 statusLabel.setForeground(new Color(236, 184, 79));
             }
-            String lastSync = state.getLastSyncAt() <= 0 ? "Not synchronized yet" : "Last sync " + new SimpleDateFormat("HH:mm:ss").format(new Date(state.getLastSyncAt()));
+            String lastSync = !config.dataSharingConsent() ? "Enable sharing in the Deckscape plugin settings"
+                : state.getLastSyncAt() <= 0 ? "Not synchronized yet" : "Last sync " + new SimpleDateFormat("HH:mm:ss").format(new Date(state.getLastSyncAt()));
             if (!state.getPendingEvents().isEmpty()) lastSync += " · " + state.getPendingEvents().size() + " queued";
             syncDetail.setText(lastSync);
             codeField.setText(state.getPairingCode().isEmpty() ? "CREATING…" : state.getPairingCode());
-            pairingBox.setVisible(!state.isLinked());
+            pairingBox.setVisible(config.dataSharingConsent() && !state.isLinked());
             int packs = state.getPacks().values().stream().mapToInt(Integer::intValue).sum();
             int cards = state.getCollection().values().stream().mapToInt(Integer::intValue).sum();
-            statsLabel.setText("<html><span style='color:#ffe18a'>" + packs + "</span> packs &nbsp;·&nbsp; <span style='color:#ffe18a'>" + cards + "</span> cards &nbsp;·&nbsp; <span style='color:#ffe18a'>" + state.getCompletedChallenges().size() + "</span> feats</html>");
+            statsLabel.setText("<html><span style='color:#ffe18a'>" + state.getCoins() + "</span> Coins &nbsp;·&nbsp; "
+                + "<span style='color:#ffe18a'>" + state.getStardust() + "</span> Stardust<br>"
+                + "<span style='color:#ffe18a'>" + packs + "</span> packs &nbsp;·&nbsp; "
+                + "<span style='color:#ffe18a'>" + cards + "</span> cards &nbsp;·&nbsp; "
+                + "<span style='color:#ffe18a'>" + state.getCompletedChallenges().size() + "</span> claimed</html>");
             if (dialog != null && dialog.isVisible()) dialog.refreshView();
             revalidate();
             repaint();

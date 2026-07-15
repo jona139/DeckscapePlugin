@@ -99,17 +99,21 @@ public final class CardCatalog
             {
                 String id = row.get("id").getAsString();
                 DeckscapeCard bundled = byId(id);
-                String type = row.get("kind").getAsString();
+                String type = row.has("kind") ? row.get("kind").getAsString() : row.get("type").getAsString();
                 DeckscapeCard.Kind kind = "UNIT".equals(type) ? UNIT : "EQUIPMENT".equals(type) ? EQUIPMENT : "PRAYER".equals(type) ? PRAYER : SPELL;
                 // Rendering metadata falls back to the bundled card when the server row lacks it.
                 DeckscapeCard.Style style = bundled == null ? MAGIC : bundled.getStyle();
                 if (row.has("style")) try { style = DeckscapeCard.Style.valueOf(row.get("style").getAsString()); } catch (IllegalArgumentException ignored) { }
                 int cost = row.has("cost") ? row.get("cost").getAsInt() : bundled == null ? 0 : bundled.getCost();
                 int power = row.has("power") ? row.get("power").getAsInt() : bundled == null ? 0 : bundled.getPower();
-                String text = row.has("text") ? row.get("text").getAsString() : bundled == null ? "" : bundled.getText();
+                String text = row.has("text") ? row.get("text").getAsString()
+                    : row.has("rulesText") ? row.get("rulesText").getAsString()
+                    : bundled == null ? "" : bundled.getText();
+                String artUrl = row.has("artUrl") && !row.get("artUrl").isJsonNull() ? row.get("artUrl").getAsString()
+                    : row.has("art") && !row.get("art").isJsonNull() ? row.get("art").getAsString() : null;
                 next.add(new DeckscapeCard(id, row.get("name").getAsString(), title(row.get("faction").getAsString()),
                     DeckscapeCard.Rarity.valueOf(row.get("rarity").getAsString()), kind, style, cost, power, text,
-                    bundled == null ? null : bundled.getArtResource()));
+                    bundled == null ? null : bundled.getArtResource(), artUrl));
             }
             catch (RuntimeException ignored) { }
         }

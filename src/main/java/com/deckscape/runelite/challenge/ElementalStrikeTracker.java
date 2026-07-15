@@ -5,29 +5,21 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
-import net.runelite.api.InventoryID;
-import net.runelite.api.Item;
-import net.runelite.api.ItemContainer;
 import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.GraphicChanged;
-import net.runelite.client.game.ItemEquipmentStats;
-import net.runelite.client.game.ItemManager;
-import net.runelite.client.game.ItemStats;
 
 @Singleton
 public final class ElementalStrikeTracker
 {
     private static final int CAST_WINDOW_TICKS = 8;
     private final Client client;
-    private final ItemManager itemManager;
     private PendingCast pendingCast;
     private Consumer<VerifiedRuneLiteChallengeEvent> completionHandler;
 
     @Inject
-    public ElementalStrikeTracker(Client client, ItemManager itemManager)
+    public ElementalStrikeTracker(Client client)
     {
         this.client = client;
-        this.itemManager = itemManager;
     }
 
     public void setCompletionHandler(Consumer<VerifiedRuneLiteChallengeEvent> completionHandler)
@@ -42,7 +34,7 @@ public final class ElementalStrikeTracker
         ElementalSpell spell = ElementalSpell.fromGraphic(graphicId);
         if (spell != null)
         {
-            pendingCast = new PendingCast(spell, client.getTickCount(), calculateMaxHit(spell.baseMaxHit), client.getLocalPlayer().getInteracting());
+            pendingCast = new PendingCast(spell, client.getTickCount(), client.getLocalPlayer().getInteracting());
         }
     }
 
@@ -59,46 +51,26 @@ public final class ElementalStrikeTracker
         int damage = event.getHitsplat().getAmount();
         pendingCast = null;
         
-        if (damage == cast.maxHit && completionHandler != null)
+        if (damage >= 16 && completionHandler != null)
         {
-            completionHandler.accept(new VerifiedRuneLiteChallengeEvent(cast.spell.contractName, damage, cast.maxHit));
+            completionHandler.accept(VerifiedRuneLiteChallengeEvent.strike(cast.spell.contractName, damage));
         }
-    }
-
-    private int calculateMaxHit(int base)
-    {
-        float magicDamage = 0f;
-        ItemContainer equipment = client.getItemContainer(InventoryID.EQUIPMENT);
-        if (equipment != null)
-        {
-            for (Item item : equipment.getItems())
-            {
-                if (item.getId() <= 0) continue;
-                ItemStats stats = itemManager.getItemStats(item.getId());
-                ItemEquipmentStats equipmentStats = stats == null ? null : stats.getEquipment();
-                if (equipmentStats != null) magicDamage += equipmentStats.getMdmg();
-            }
-        }
-        if (magicDamage > 1f) magicDamage /= 100f;
-        return Math.max(base, (int) Math.floor(base * (1f + magicDamage)));
     }
 
     private enum ElementalSpell
     {
-        WIND("WIND_STRIKE", 90, 2),
-        WATER("WATER_STRIKE", 93, 4),
-        EARTH("EARTH_STRIKE", 96, 6),
-        FIRE("FIRE_STRIKE", 99, 8);
+        WIND("WIND_STRIKE", 90),
+        WATER("WATER_STRIKE", 93),
+        EARTH("EARTH_STRIKE", 96),
+        FIRE("FIRE_STRIKE", 99);
 
         private final String contractName;
         private final int castGfx;
-        private final int baseMaxHit;
 
-        ElementalSpell(String contractName, int castGfx, int baseMaxHit)
+        ElementalSpell(String contractName, int castGfx)
         {
             this.contractName = contractName;
             this.castGfx = castGfx;
-            this.baseMaxHit = baseMaxHit;
         }
 
         private static ElementalSpell fromGraphic(int gfxId)
@@ -115,14 +87,12 @@ public final class ElementalStrikeTracker
     {
         private final ElementalSpell spell;
         private final int tick;
-        private final int maxHit;
         private final Actor target;
 
-        private PendingCast(ElementalSpell spell, int tick, int maxHit, Actor target)
+        private PendingCast(ElementalSpell spell, int tick, Actor target)
         {
             this.spell = spell;
             this.tick = tick;
-            this.maxHit = maxHit;
             this.target = target;
         }
     }

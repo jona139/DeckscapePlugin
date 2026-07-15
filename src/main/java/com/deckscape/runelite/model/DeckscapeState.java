@@ -14,6 +14,11 @@ public final class DeckscapeState
     private final Map<PackType, Integer> packs = new EnumMap<>(PackType.class);
     private final Set<String> completedChallenges = new LinkedHashSet<>();
     private Map<String, Integer> challengeProgress = new LinkedHashMap<>();
+    private Set<String> ownedGoldTrims = new LinkedHashSet<>();
+    private int coins;
+    private int stardust;
+    private int goldenNuggets;
+    private int xpRewardInterval = 50_000;
     private int xpTowardsPack;
     private String deviceToken;
     private String pairingCode;
@@ -58,6 +63,15 @@ public final class DeckscapeState
     public Map<PackType, Integer> getPacks() { return packs; }
     public Set<String> getCompletedChallenges() { return completedChallenges; }
     public Map<String, Integer> getChallengeProgress() { if (challengeProgress == null) challengeProgress = new LinkedHashMap<>(); return challengeProgress; }
+    public Set<String> getOwnedGoldTrims() { if (ownedGoldTrims == null) ownedGoldTrims = new LinkedHashSet<>(); return ownedGoldTrims; }
+    public int getCoins() { return coins; }
+    public void setCoins(int coins) { this.coins = Math.max(0, coins); }
+    public int getStardust() { return stardust; }
+    public void setStardust(int stardust) { this.stardust = Math.max(0, stardust); }
+    public int getGoldenNuggets() { return goldenNuggets; }
+    public void setGoldenNuggets(int goldenNuggets) { this.goldenNuggets = Math.max(0, goldenNuggets); }
+    public int getXpRewardInterval() { return xpRewardInterval <= 0 ? 50_000 : xpRewardInterval; }
+    public void setXpRewardInterval(int xpRewardInterval) { this.xpRewardInterval = Math.max(1, xpRewardInterval); }
     public int getXpTowardsPack() { return xpTowardsPack; }
     public void setXpTowardsPack(int xpTowardsPack) { this.xpTowardsPack = Math.max(0, xpTowardsPack); }
 

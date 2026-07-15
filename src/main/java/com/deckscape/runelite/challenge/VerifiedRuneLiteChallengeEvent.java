@@ -1,44 +1,65 @@
 package com.deckscape.runelite.challenge;
 
+import com.google.gson.JsonObject;
 import java.time.Instant;
 import java.util.UUID;
 
-/** JSON-compatible version of the website's VerifiedRuneLiteChallengeEvent contract. */
+/** Authenticated observation sent through the persisted server outbox. */
 public final class VerifiedRuneLiteChallengeEvent
 {
     public static final int VERSION = 1;
     private final int version = VERSION;
     private final String eventId = UUID.randomUUID().toString();
-    private final String kind = "ELEMENTAL_STRIKE_MAX_HIT";
+    private final String kind;
     private final String observedAt = Instant.now().toString();
-    private final Payload payload;
+    private final int quantity;
+    private final int damage;
+    private final String spell;
 
-    public VerifiedRuneLiteChallengeEvent(String spell, int damage, int maxHit)
+    private VerifiedRuneLiteChallengeEvent(String kind, int quantity, int damage, String spell)
     {
-        this.payload = new Payload(spell, damage, maxHit);
+        this.kind = kind;
+        this.quantity = quantity;
+        this.damage = damage;
+        this.spell = spell;
+    }
+
+    public static VerifiedRuneLiteChallengeEvent observed(RuneLiteChallenge challenge)
+    {
+        return new VerifiedRuneLiteChallengeEvent(challenge.getKind(), 1, 0, null);
+    }
+
+    public static VerifiedRuneLiteChallengeEvent quantity(RuneLiteChallenge challenge, int quantity)
+    {
+        return new VerifiedRuneLiteChallengeEvent(challenge.getKind(), Math.max(1, quantity), 0, null);
+    }
+
+    public static VerifiedRuneLiteChallengeEvent strike(String spell, int damage)
+    {
+        return new VerifiedRuneLiteChallengeEvent(RuneLiteChallenge.STRIKE_HIT.getKind(), 1, damage, spell);
     }
 
     public int getVersion() { return version; }
     public String getEventId() { return eventId; }
     public String getKind() { return kind; }
     public String getObservedAt() { return observedAt; }
-    public Payload getPayload() { return payload; }
+    public int getQuantity() { return quantity; }
+    public int getDamage() { return damage; }
+    public String getSpell() { return spell; }
 
-    public static final class Payload
+    public JsonObject toPayload()
     {
-        private final String spell;
-        private final int damage;
-        private final int maxHit;
-
-        private Payload(String spell, int damage, int maxHit)
+        JsonObject payload = new JsonObject();
+        payload.addProperty("version", version);
+        payload.addProperty("kind", kind);
+        payload.addProperty("observedAt", observedAt);
+        if (RuneLiteChallenge.PURE_ESSENCE.getKind().equals(kind)
+            || RuneLiteChallenge.RUNE_KITESHIELD.getKind().equals(kind)) payload.addProperty("quantity", quantity);
+        if (RuneLiteChallenge.STRIKE_HIT.getKind().equals(kind))
         {
-            this.spell = spell;
-            this.damage = damage;
-            this.maxHit = maxHit;
+            payload.addProperty("damage", damage);
+            if (spell != null) payload.addProperty("spell", spell);
         }
-
-        public String getSpell() { return spell; }
-        public int getDamage() { return damage; }
-        public int getMaxHit() { return maxHit; }
+        return payload;
     }
 }
