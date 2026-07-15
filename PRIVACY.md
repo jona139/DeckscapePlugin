@@ -18,6 +18,11 @@ After consent, the plugin may send:
 - pack-open and account-synchronization actions; and
 - network metadata necessarily handled by the service provider, including IP address and request timestamps.
 
+For cards whose artwork is not bundled with the plugin, the plugin makes consent-gated HTTPS image requests
+directly to `oldschool.runescape.wiki`. The wiki receives ordinary request metadata such as the IP address,
+request time, and the plugin's identifying user-agent. Downloaded images are held only in memory for the
+current RuneLite session.
+
 The linked Deckscape account stores its Deckscape display name, collection, wallet, packs, challenge progress,
 cosmetics, and processed event identifiers. The server stores only a SHA-256 digest of the device token.
 
@@ -31,6 +36,10 @@ The data is used only to link the plugin, synchronize the Deckscape account, pre
 rewards, grant server-authoritative rewards, and diagnose service failures. It is processed by Supabase as the
 hosting and database provider under [Supabase's privacy policy](https://supabase.com/privacy). It is not sold
 or used for advertising.
+
+Remote card artwork is provided by the Old School RuneScape Wiki under its own
+[privacy policy](https://weirdgloop.org/privacy-policy). The plugin does not include the Deckscape device token
+or account information in artwork requests.
 
 ## Retention and control
 

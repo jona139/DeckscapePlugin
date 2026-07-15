@@ -85,7 +85,7 @@ public final class CardPainter
         RegionTheme theme = RegionTheme.forFaction(card.getFaction());
         BufferedImage backdrop = theme.backdrop == null ? null : softBackdrop(theme.backdrop);
         if (backdrop != null) drawCover(g, backdrop, inner);
-        BufferedImage art = DeckscapeImages.load(card.getArtResource());
+        BufferedImage art = DeckscapeImages.loadCardArt(card);
         if (art != null)
         {
             if (card.getKind() != DeckscapeCard.Kind.UNIT)

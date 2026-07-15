@@ -11,7 +11,8 @@ public interface DeckscapeConfig extends Config
         keyName = "dataSharingConsent",
         name = "Share data with Deckscape",
         description = "Required for account sync and rewards. Sends XP gains, verified challenge events, "
-            + "pack actions, a revocable device token, and your IP address to the Deckscape service. "
+            + "pack actions, a revocable device token, and your IP address to the Deckscape service, and "
+            + "downloads card artwork from the Old School RuneScape Wiki. "
             + "No RuneScape login credentials or other players' data are sent.",
         position = 0
     )

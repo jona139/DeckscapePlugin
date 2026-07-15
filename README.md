@@ -17,6 +17,10 @@ flags; pack actions; and ordinary network metadata such as the IP address receiv
 It does not send RuneScape login credentials, chat, bank contents, the player's RuneScape display name,
 or information about other players. See the full [privacy notice](PRIVACY.md).
 
+When a card has no artwork bundled in the plugin, Deckscape downloads its image over HTTPS directly
+from the [Old School RuneScape Wiki](https://oldschool.runescape.wiki). Downloads are consent-gated,
+restricted to that host, size-limited, decoded in memory, and cached only for the current RuneLite session.
+
 Unchecking the option stops all new Deckscape requests immediately. Players can also revoke the device link
 from the Deckscape website.
 

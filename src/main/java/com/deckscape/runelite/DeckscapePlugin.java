@@ -10,11 +10,13 @@ import com.deckscape.runelite.model.DeckscapeCard;
 import com.deckscape.runelite.model.DeckscapeState;
 import com.deckscape.runelite.model.PackType;
 import com.deckscape.runelite.model.PendingSyncEvent;
+import com.deckscape.runelite.ui.DeckscapeImages;
 import com.deckscape.runelite.ui.DeckscapePanel;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.inject.Provides;
+import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
+import okhttp3.OkHttpClient;
 
 @Slf4j
 @PluginDescriptor(
@@ -77,6 +80,7 @@ public final class DeckscapePlugin extends Plugin
     @Inject private GoldenFrameChallengeTracker goldenFrameChallengeTracker;
     @Inject private Notifier notifier;
     @Inject private DeckscapeSyncClient syncClient;
+    @Inject private OkHttpClient httpClient;
     @Inject private ScheduledExecutorService executor;
     @Inject private net.runelite.client.input.MouseManager mouseManager;
     @Inject private PackRevealInputListener packRevealInputListener;
@@ -94,6 +98,7 @@ public final class DeckscapePlugin extends Plugin
     protected void startUp()
     {
         DeckscapeState state = store.load();
+        DeckscapeImages.configureRemoteArt(httpClient, config::dataSharingConsent, this::repaintDeckscapeArt);
         panel.setHandlers(this::openPack, this::syncWithServer, this::beginPairing, client::playSoundEffect);
         elementalStrikeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
         goldenFrameChallengeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
@@ -129,6 +134,7 @@ public final class DeckscapePlugin extends Plugin
         elementalStrikeTracker.setCompletionHandler(null);
         goldenFrameChallengeTracker.setCompletionHandler(null);
         goldenFrameChallengeTracker.resetSession();
+        DeckscapeImages.clearRemoteArtConfiguration();
         overlayManager.remove(completionOverlay);
         overlayManager.remove(packRewardOverlay);
         overlayManager.remove(packRevealOverlay);
@@ -183,7 +189,14 @@ public final class DeckscapePlugin extends Plugin
             }
             else beginPairing();
         }
+        else DeckscapeImages.cancelRemoteArtRequests();
         panel.refresh();
+    }
+
+    private void repaintDeckscapeArt()
+    {
+        panel.repaint();
+        for (Window window : Window.getWindows()) if (window.isShowing()) window.repaint();
     }
 
     private void maintainSync()
