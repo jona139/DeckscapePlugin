@@ -58,25 +58,25 @@ public final class DeckscapePanel extends PluginPanel
 
         JLabel eyebrow = new JLabel("OSRS COMPANION", SwingConstants.CENTER);
         eyebrow.setForeground(new Color(169, 139, 74));
-        eyebrow.setFont(new Font("SansSerif", Font.BOLD, 9));
+        eyebrow.setFont(new Font("SansSerif", Font.BOLD, 11));
         eyebrow.setAlignmentX(CENTER_ALIGNMENT);
         body.add(eyebrow);
         JLabel title = new JLabel("<html><span style='color:#ffe18a'>DECK</span><span style='color:#f2e2bb'>SCAPE</span></html>", SwingConstants.CENTER);
-        title.setFont(new Font("Serif", Font.BOLD, 25));
+        title.setFont(new Font("Serif", Font.BOLD, 27));
         title.setAlignmentX(CENTER_ALIGNMENT);
         body.add(title);
         JLabel subtitle = new JLabel("One collection. Two worlds.", SwingConstants.CENTER);
         subtitle.setForeground(DeckscapePalette.MUTED);
-        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
         subtitle.setAlignmentX(CENTER_ALIGNMENT);
         body.add(subtitle);
         body.add(Box.createRigidArea(new Dimension(0, 16)));
 
         JPanel statusCard = card();
-        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         statusLabel.setAlignmentX(LEFT_ALIGNMENT);
         syncDetail.setForeground(DeckscapePalette.MUTED);
-        syncDetail.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        syncDetail.setFont(new Font("SansSerif", Font.PLAIN, 12));
         syncDetail.setAlignmentX(LEFT_ALIGNMENT);
         statusCard.add(statusLabel);
         statusCard.add(Box.createRigidArea(new Dimension(0, 4)));
@@ -92,12 +92,12 @@ public final class DeckscapePanel extends PluginPanel
         pairingBox.setAlignmentX(CENTER_ALIGNMENT);
         JLabel pairTitle = new JLabel("LINK YOUR WEBSITE ACCOUNT");
         pairTitle.setForeground(DeckscapePalette.GOLD);
-        pairTitle.setFont(new Font("SansSerif", Font.BOLD, 10));
+        pairTitle.setFont(new Font("SansSerif", Font.BOLD, 12));
         pairTitle.setAlignmentX(LEFT_ALIGNMENT);
         pairingBox.add(pairTitle);
         JLabel pairCopy = new JLabel("<html>Enter this code on the Deckscape<br>account page. It expires in 10 minutes.</html>");
         pairCopy.setForeground(DeckscapePalette.MUTED);
-        pairCopy.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        pairCopy.setFont(new Font("SansSerif", Font.PLAIN, 12));
         pairCopy.setAlignmentX(LEFT_ALIGNMENT);
         pairingBox.add(Box.createRigidArea(new Dimension(0, 5)));
         pairingBox.add(pairCopy);
@@ -130,10 +130,10 @@ public final class DeckscapePanel extends PluginPanel
         JPanel summary = card();
         JLabel summaryTitle = new JLabel("SHARED PROGRESS");
         summaryTitle.setForeground(new Color(168, 143, 91));
-        summaryTitle.setFont(new Font("SansSerif", Font.BOLD, 9));
+        summaryTitle.setFont(new Font("SansSerif", Font.BOLD, 11));
         summaryTitle.setAlignmentX(LEFT_ALIGNMENT);
         statsLabel.setForeground(DeckscapePalette.PARCHMENT);
-        statsLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        statsLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         statsLabel.setAlignmentX(LEFT_ALIGNMENT);
         summary.add(summaryTitle);
         summary.add(Box.createRigidArea(new Dimension(0, 7)));
@@ -164,7 +164,7 @@ public final class DeckscapePanel extends PluginPanel
 
     private JButton actionButton(String title, String detail, DeckscapeDialog.Tab tab)
     {
-        JButton button = new JButton("<html><b>" + title + "</b><br><span style='font-size:9px;color:#5b431f'>" + detail + "</span></html>");
+        JButton button = new JButton("<html><b>" + title + "</b><br><span style='font-size:11px;color:#5b431f'>" + detail + "</span></html>");
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setFocusPainted(false);
         button.setForeground(DeckscapePalette.INK);
@@ -182,7 +182,7 @@ public final class DeckscapePanel extends PluginPanel
         button.setFocusPainted(false);
         button.setForeground(DeckscapePalette.PARCHMENT);
         button.setBackground(new Color(55, 47, 34));
-        button.setFont(new Font("SansSerif", Font.BOLD, 10));
+        button.setFont(new Font("SansSerif", Font.BOLD, 12));
         button.setBorder(BorderFactory.createLineBorder(new Color(119, 94, 48)));
         return button;
     }
@@ -233,7 +233,7 @@ public final class DeckscapePanel extends PluginPanel
                 + "<span style='color:#ffe18a'>" + packs + "</span> packs &nbsp;·&nbsp; "
                 + "<span style='color:#ffe18a'>" + cards + "</span> cards &nbsp;·&nbsp; "
                 + "<span style='color:#ffe18a'>" + state.getCompletedChallenges().size() + "</span> claimed</html>");
-            if (dialog != null && dialog.isVisible()) dialog.refreshView();
+            if (dialog != null && dialog.isVisible()) dialog.refreshData();
             revalidate();
             repaint();
         });

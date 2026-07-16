@@ -23,7 +23,7 @@ public final class PackOpeningView extends JPanel
         setBackground(DeckscapePalette.PANEL_DARK);
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        JLabel heading = new JLabel("<html><center><span style='font-size:16px; color:#ffd45e;'><b>" + packName + "</b></span><br><span style='color:#a8a08a;'>Click each card to reveal your rewards!</span></center></html>", SwingConstants.CENTER);
+        JLabel heading = new JLabel("<html><center><span style='font-size:18px; color:#ffd45e;'><b>" + packName + "</b></span><br><span style='font-size:13px; color:#a8a08a;'>Click each card to reveal your rewards!</span></center></html>", SwingConstants.CENTER);
         add(heading, BorderLayout.NORTH);
 
         // Layout cards in a single horizontal row (5 columns)
@@ -85,7 +85,7 @@ public final class PackOpeningView extends JPanel
         button.setFocusPainted(false);
         button.setForeground(DeckscapePalette.INK);
         button.setBackground(DeckscapePalette.BRASS);
-        button.setFont(button.getFont().deriveFont(java.awt.Font.BOLD, 12f));
+        button.setFont(button.getFont().deriveFont(java.awt.Font.BOLD, 13f));
         button.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new java.awt.Color(111, 75, 17), 2),
             BorderFactory.createEmptyBorder(6, 16, 6, 16)));

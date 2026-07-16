@@ -90,7 +90,11 @@ public final class CardPainter
         {
             if (card.getKind() != DeckscapeCard.Kind.UNIT)
                 g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-            Rectangle artBox = new Rectangle(inner.x + pad, inner.y + pad, inner.width - pad * 2, inner.height - pad * 2);
+            // The website only gives portrait art a 2px inset. Reusing the card-body
+            // padding here made characters visibly smaller than their web cards.
+            int artPad = Math.max(1, Math.round(2 * s));
+            Rectangle artBox = new Rectangle(inner.x + artPad, inner.y + artPad,
+                inner.width - artPad * 2, inner.height - artPad * 2);
             drawContain(g, art, artBox);
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         }
@@ -106,7 +110,7 @@ public final class CardPainter
         g.setClip(clip);
 
         // Name plate over the bottom of the portrait; grows for two-line names.
-        int nameSize = Math.max(9, Math.round(12.5f * s));
+        int nameSize = Math.max(10, Math.round(13.5f * s));
         g.setFont(new Font("Serif", Font.BOLD, nameSize));
         int gemSize = Math.max(16, Math.round(24 * s));
         int nameX = inner.x + Math.round(6 * s);
@@ -133,7 +137,7 @@ public final class CardPainter
         g.setStroke(new BasicStroke(Math.max(1.5f, 2 * s)));
         g.draw(new RoundRectangle2D.Float(corner, costY, costSize, costSize, costSize * .5f, costSize * .5f));
         g.setColor(COST_TEXT);
-        g.setFont(new Font("Serif", Font.BOLD, Math.max(10, Math.round(14 * s))));
+        g.setFont(new Font("Serif", Font.BOLD, Math.max(11, Math.round(15 * s))));
         drawCenteredIn(g, String.valueOf(card.getCost()), corner, costY, costSize, costSize);
 
         BufferedImage styleIcon = DeckscapeImages.load("/com/deckscape/runelite/regions/style_" + card.getStyle().name().toLowerCase() + ".png");
@@ -167,7 +171,7 @@ public final class CardPainter
         g.setColor(GEM_TEXT);
         if (card.getKind() == DeckscapeCard.Kind.UNIT)
         {
-            g.setFont(new Font("Serif", Font.BOLD, Math.max(10, Math.round(13 * s))));
+            g.setFont(new Font("Serif", Font.BOLD, Math.max(11, Math.round(14 * s))));
             drawCenteredIn(g, String.valueOf(card.getPower()), gemX, gemY, gemSize, gemSize);
         }
         else
@@ -178,7 +182,7 @@ public final class CardPainter
         // Owned count above the power gem.
         if (owned >= 0)
         {
-            g.setFont(new Font("SansSerif", Font.BOLD, Math.max(9, Math.round(11 * s))));
+            g.setFont(new Font("SansSerif", Font.BOLD, Math.max(10, Math.round(12 * s))));
             FontMetrics fm = g.getFontMetrics();
             String label = "×" + owned;
             int badgeW = Math.max(gemSize, fm.stringWidth(label) + Math.round(8 * s));

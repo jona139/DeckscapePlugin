@@ -20,6 +20,8 @@ import java.awt.GridBagLayout;
 import java.awt.LayoutManager;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -52,6 +54,9 @@ public final class DeckscapeDialog extends JFrame
     private final Runnable syncAction;
     private final java.util.function.Consumer<Integer> soundPlayer;
     private final JPanel content = new JPanel(new BorderLayout());
+    private JPanel collectionGrid;
+    private JLabel collectionResultCount;
+    private JLabel collectionTitle;
 
     private Tab activeTab = Tab.PACKS;
     private String collectionSearch = "";
@@ -59,6 +64,7 @@ public final class DeckscapeDialog extends JFrame
     private String collectionRarity = "All rarities";
     private String collectionKind = "All types";
     private String collectionOwnership = "All cards";
+    private String collectionSort = "Name A-Z";
 
     public enum Tab { COLLECTION, PACKS, CHALLENGES }
 
@@ -87,7 +93,7 @@ public final class DeckscapeDialog extends JFrame
         titleBar.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, DeckscapePalette.BRASS));
 
         JLabel titleLabel = new JLabel("<html><span style='color:#ffd45e; font-weight:bold;'>Deckscape Companion</span></html>");
-        titleLabel.setFont(titleLabel.getFont().deriveFont(16f));
+        titleLabel.setFont(titleLabel.getFont().deriveFont(18f));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         titleBar.add(titleLabel, BorderLayout.WEST);
 
@@ -126,10 +132,26 @@ public final class DeckscapeDialog extends JFrame
         content.repaint();
     }
 
+    /** Refresh synchronized data without replacing focused search/filter controls. */
+    public void refreshData()
+    {
+        if (activeTab == Tab.COLLECTION && collectionGrid != null && collectionResultCount != null)
+        {
+            DeckscapeState state = store.load();
+            if (collectionTitle != null)
+            {
+                collectionTitle.setText(collectionTitleText(state));
+            }
+            rebuildCollectionGrid(collectionGrid, collectionResultCount, state);
+            return;
+        }
+        refreshView();
+    }
+
     private JButton tabButton(String label, Tab tab)
     {
         JButton button = new JButton(label);
-        button.setFont(button.getFont().deriveFont(Font.BOLD, 11f));
+        button.setFont(button.getFont().deriveFont(Font.BOLD, 13f));
         button.setFocusPainted(false);
         button.setForeground(DeckscapePalette.PARCHMENT);
         button.setBackground(DeckscapePalette.PANEL_DARK);
@@ -148,7 +170,8 @@ public final class DeckscapeDialog extends JFrame
 
         JPanel titleRow = new JPanel(new BorderLayout());
         titleRow.setOpaque(false);
-        titleRow.add(sectionTitle("Collection · " + state.getCollection().values().stream().mapToInt(Integer::intValue).sum() + " cards"), BorderLayout.WEST);
+        collectionTitle = sectionTitle(collectionTitleText(state));
+        titleRow.add(collectionTitle, BorderLayout.WEST);
 
         JButton syncBtn = PackOpeningView.button("Sync Offline");
         if (syncAction != null)
@@ -170,17 +193,31 @@ public final class DeckscapeDialog extends JFrame
         page.add(titleRow);
         page.add(Box.createRigidArea(new Dimension(0, 6)));
 
-        JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 5));
+        JPanel filters = new JPanel();
+        filters.setLayout(new BoxLayout(filters, BoxLayout.Y_AXIS));
         filters.setBackground(DeckscapePalette.PANEL);
         filters.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(91, 82, 64)),
             BorderFactory.createEmptyBorder(4, 5, 4, 5)));
         filters.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filters.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
+        filters.setMaximumSize(new Dimension(Integer.MAX_VALUE, 144));
+
+        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 4));
+        searchRow.setOpaque(false);
+        searchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel selectRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 4));
+        selectRow.setOpaque(false);
+        selectRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel sortRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 4));
+        sortRow.setOpaque(false);
+        sortRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JTextField search = new JTextField(collectionSearch, 16);
         search.setToolTipText("Search card names");
         search.setPreferredSize(new Dimension(180, 28));
+        search.setEditable(true);
+        search.setFocusable(true);
+        search.setCaretColor(DeckscapePalette.GOLD);
         styleFilter(search);
 
         Set<String> factions = new TreeSet<>();
@@ -207,31 +244,50 @@ public final class DeckscapeDialog extends JFrame
         ownership.setSelectedItem(collectionOwnership);
         styleFilter(ownership);
 
+        JComboBox<String> sort = new JComboBox<>(new String[] {
+            "Name A-Z", "Name Z-A", "Rarity: Common first", "Rarity: Legendary first",
+            "Most owned", "Least owned", "Cost: Low to high", "Cost: High to low", "Power: High to low"
+        });
+        sort.setSelectedItem(collectionSort);
+        sort.setToolTipText("Sort collection");
+        styleFilter(sort);
+
         JLabel searchLabel = new JLabel("Search:");
         searchLabel.setForeground(DeckscapePalette.PARCHMENT);
-        filters.add(searchLabel);
-        filters.add(search);
-        filters.add(faction);
-        filters.add(rarity);
-        filters.add(kind);
-        filters.add(ownership);
+        searchLabel.setFont(searchLabel.getFont().deriveFont(13f));
+        JLabel sortLabel = new JLabel("Sort:");
+        sortLabel.setForeground(DeckscapePalette.PARCHMENT);
+        sortLabel.setFont(sortLabel.getFont().deriveFont(13f));
+        searchRow.add(searchLabel);
+        searchRow.add(search);
+        searchRow.add(ownership);
+        selectRow.add(faction);
+        selectRow.add(rarity);
+        selectRow.add(kind);
+        sortRow.add(sortLabel);
+        sortRow.add(sort);
+        filters.add(searchRow);
+        filters.add(selectRow);
+        filters.add(sortRow);
         page.add(filters);
         page.add(Box.createRigidArea(new Dimension(0, 5)));
 
         JLabel resultCount = new JLabel();
         resultCount.setForeground(DeckscapePalette.MUTED);
-        resultCount.setFont(resultCount.getFont().deriveFont(11f));
+        resultCount.setFont(resultCount.getFont().deriveFont(13f));
         resultCount.setAlignmentX(Component.LEFT_ALIGNMENT);
         page.add(resultCount);
         page.add(Box.createRigidArea(new Dimension(0, 8)));
 
         // Aspect-locked, responsive grid: resizing/maximizing adds columns instead of stretching five cards indefinitely.
-        JPanel grid = new JPanel(new CardGridLayout(132, 10, 12));
+        JPanel grid = new JPanel(new CardGridLayout(142, 10, 12));
         grid.setOpaque(false);
         grid.setAlignmentX(Component.LEFT_ALIGNMENT);
         page.add(grid);
 
-        Runnable rebuild = () -> rebuildCollectionGrid(grid, resultCount, state);
+        collectionGrid = grid;
+        collectionResultCount = resultCount;
+        Runnable rebuild = () -> rebuildCollectionGrid(grid, resultCount, store.load());
         search.getDocument().addDocumentListener(new DocumentListener()
         {
             private void changed()
@@ -248,6 +304,7 @@ public final class DeckscapeDialog extends JFrame
         rarity.addActionListener(event -> { collectionRarity = String.valueOf(rarity.getSelectedItem()); rebuild.run(); });
         kind.addActionListener(event -> { collectionKind = String.valueOf(kind.getSelectedItem()); rebuild.run(); });
         ownership.addActionListener(event -> { collectionOwnership = String.valueOf(ownership.getSelectedItem()); rebuild.run(); });
+        sort.addActionListener(event -> { collectionSort = String.valueOf(sort.getSelectedItem()); rebuild.run(); });
         rebuild.run();
         return page;
     }
@@ -256,7 +313,7 @@ public final class DeckscapeDialog extends JFrame
     {
         grid.removeAll();
         String search = collectionSearch.toLowerCase(Locale.ROOT);
-        int shown = 0;
+        List<DeckscapeCard> shown = new ArrayList<>();
         for (DeckscapeCard card : CardCatalog.all())
         {
             int owned = state.getCollection().getOrDefault(card.getId(), 0);
@@ -266,10 +323,29 @@ public final class DeckscapeDialog extends JFrame
             if (!"All types".equals(collectionKind) && !collectionKind.equalsIgnoreCase(card.getKind().name())) continue;
             if ("Owned".equals(collectionOwnership) && owned <= 0) continue;
             if ("Missing".equals(collectionOwnership) && owned > 0) continue;
-            grid.add(new CardTile(card, owned, () -> showCardDetail(card, owned)));
-            shown++;
+            shown.add(card);
         }
-        resultCount.setText("Showing " + shown + " of " + CardCatalog.all().size() + " cards");
+        Comparator<DeckscapeCard> byName = Comparator.comparing(DeckscapeCard::getName, String.CASE_INSENSITIVE_ORDER);
+        Comparator<DeckscapeCard> order;
+        switch (collectionSort)
+        {
+            case "Name Z-A": order = byName.reversed(); break;
+            case "Rarity: Common first": order = Comparator.comparingInt(card -> card.getRarity().ordinal()); break;
+            case "Rarity: Legendary first": order = Comparator.comparingInt((DeckscapeCard card) -> card.getRarity().ordinal()).reversed(); break;
+            case "Most owned": order = Comparator.comparingInt((DeckscapeCard card) -> state.getCollection().getOrDefault(card.getId(), 0)).reversed(); break;
+            case "Least owned": order = Comparator.comparingInt(card -> state.getCollection().getOrDefault(card.getId(), 0)); break;
+            case "Cost: Low to high": order = Comparator.comparingInt(DeckscapeCard::getCost); break;
+            case "Cost: High to low": order = Comparator.comparingInt(DeckscapeCard::getCost).reversed(); break;
+            case "Power: High to low": order = Comparator.comparingInt(DeckscapeCard::getPower).reversed(); break;
+            default: order = byName;
+        }
+        shown.sort(order.thenComparing(byName));
+        for (DeckscapeCard card : shown)
+        {
+            int owned = state.getCollection().getOrDefault(card.getId(), 0);
+            grid.add(new CardTile(card, owned, () -> showCardDetail(card, owned)));
+        }
+        resultCount.setText("Showing " + shown.size() + " of " + CardCatalog.all().size() + " cards");
         grid.revalidate();
         grid.repaint();
     }
@@ -278,10 +354,18 @@ public final class DeckscapeDialog extends JFrame
     {
         component.setForeground(DeckscapePalette.PARCHMENT);
         component.setBackground(DeckscapePalette.PANEL_DARK);
-        component.setFont(component.getFont().deriveFont(11f));
+        component.setFont(component.getFont().deriveFont(13f));
         component.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(119, 94, 48)),
             BorderFactory.createEmptyBorder(3, 6, 3, 6)));
+        if (component instanceof JComboBox)
+        {
+            JComboBox<?> combo = (JComboBox<?>) component;
+            // Keep long menus above RuneLite's component hierarchy so lower rows
+            // remain visible and clickable near the bottom of the window.
+            combo.setLightWeightPopupEnabled(false);
+            combo.setMaximumRowCount(14);
+        }
     }
 
     /** Web-inspector-style detail view on the glass pane: big card left, details right. */
@@ -321,21 +405,21 @@ public final class DeckscapeDialog extends JFrame
 
         JLabel kicker = new JLabel("CARD DETAILS");
         kicker.setForeground(new Color(168, 143, 91));
-        kicker.setFont(new Font("SansSerif", Font.BOLD, 10));
+        kicker.setFont(new Font("SansSerif", Font.BOLD, 12));
         kicker.setAlignmentX(Component.LEFT_ALIGNMENT);
         copy.add(kicker);
         copy.add(Box.createRigidArea(new Dimension(0, 4)));
 
         JLabel name = new JLabel(card.getName());
         name.setForeground(DeckscapePalette.GOLD);
-        name.setFont(new Font("Serif", Font.BOLD, 24));
+        name.setFont(new Font("Serif", Font.BOLD, 26));
         name.setAlignmentX(Component.LEFT_ALIGNMENT);
         copy.add(name);
         copy.add(Box.createRigidArea(new Dimension(0, 6)));
 
         JLabel meta = new JLabel(title(card.getRarity().name()) + " · " + title(card.getKind().name()) + " · " + card.getFaction());
         meta.setForeground(DeckscapePalette.MUTED);
-        meta.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        meta.setFont(new Font("SansSerif", Font.PLAIN, 14));
         meta.setAlignmentX(Component.LEFT_ALIGNMENT);
         copy.add(meta);
 
@@ -343,7 +427,7 @@ public final class DeckscapeDialog extends JFrame
             ? "Cost " + card.getCost() + " · Power " + card.getPower() + " · " + title(card.getStyle().name())
             : "Cost " + card.getCost() + " · " + title(card.getStyle().name()));
         stats.setForeground(DeckscapePalette.PARCHMENT);
-        stats.setFont(new Font("SansSerif", Font.BOLD, 12));
+        stats.setFont(new Font("SansSerif", Font.BOLD, 14));
         stats.setAlignmentX(Component.LEFT_ALIGNMENT);
         copy.add(Box.createRigidArea(new Dimension(0, 4)));
         copy.add(stats);
@@ -351,21 +435,21 @@ public final class DeckscapeDialog extends JFrame
 
         JLabel abilityTitle = new JLabel("ABILITY");
         abilityTitle.setForeground(new Color(168, 143, 91));
-        abilityTitle.setFont(new Font("SansSerif", Font.BOLD, 10));
+        abilityTitle.setFont(new Font("SansSerif", Font.BOLD, 12));
         abilityTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         copy.add(abilityTitle);
         copy.add(Box.createRigidArea(new Dimension(0, 4)));
 
         JLabel ability = new JLabel("<html><div style='width:230px'>" + escape(card.getText()) + "</div></html>");
         ability.setForeground(DeckscapePalette.PARCHMENT);
-        ability.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        ability.setFont(new Font("SansSerif", Font.PLAIN, 15));
         ability.setAlignmentX(Component.LEFT_ALIGNMENT);
         copy.add(ability);
         copy.add(Box.createVerticalGlue());
 
         JLabel ownedLabel = new JLabel(owned > 0 ? "In collection: ×" + owned : "Not collected yet");
         ownedLabel.setForeground(owned > 0 ? DeckscapePalette.GOLD : DeckscapePalette.MUTED);
-        ownedLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        ownedLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         ownedLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         copy.add(Box.createRigidArea(new Dimension(0, 12)));
         copy.add(ownedLabel);
@@ -413,6 +497,7 @@ public final class DeckscapeDialog extends JFrame
             + " XP</b> rolls for a pack, Coins, or Stardust. Progress: "
             + String.format("%,d", state.getXpTowardsPack()) + "/" + String.format("%,d", state.getXpRewardInterval()) + " XP</html>");
         testRule.setForeground(DeckscapePalette.MUTED);
+        testRule.setFont(testRule.getFont().deriveFont(13f));
         testRule.setBorder(BorderFactory.createEmptyBorder(2, 2, 8, 2));
         testRule.setAlignmentX(Component.LEFT_ALIGNMENT);
         page.add(testRule);
@@ -438,7 +523,7 @@ public final class DeckscapeDialog extends JFrame
 
             JLabel copy = new JLabel("<html><b>" + type.getDisplayName() + "</b><br><span style='color:#b9ae91'>Quantity: " + state.packCount(type) + "</span></html>");
             copy.setForeground(DeckscapePalette.PARCHMENT);
-            copy.setFont(copy.getFont().deriveFont(13f));
+            copy.setFont(copy.getFont().deriveFont(15f));
 
             JLabel icon = new JLabel(new ImageIcon(CardPainter.packImage(type, 40, 58)));
 
@@ -488,7 +573,7 @@ public final class DeckscapeDialog extends JFrame
             String status = claimed ? "Claimed" : verified ? "Ready to claim on website" : "In progress";
             JLabel title = new JLabel((claimed ? "✓ " : verified ? "◆ " : "○ ") + challenge.getTitle());
             title.setForeground(verified ? DeckscapePalette.GOLD : DeckscapePalette.PARCHMENT);
-            title.setFont(title.getFont().deriveFont(Font.BOLD, 15f));
+            title.setFont(title.getFont().deriveFont(Font.BOLD, 17f));
             task.add(title);
             task.add(Box.createRigidArea(new Dimension(0, 5)));
 
@@ -498,7 +583,7 @@ public final class DeckscapeDialog extends JFrame
             JLabel description = new JLabel("<html>" + challenge.getDescription() + progressLabel
                 + "<br><b>Reward:</b> " + challenge.getReward() + "<br><b>Status:</b> " + status + "</html>");
             description.setForeground(DeckscapePalette.MUTED);
-            description.setFont(description.getFont().deriveFont(12f));
+            description.setFont(description.getFont().deriveFont(14f));
             task.add(description);
             page.add(task);
             page.add(Box.createRigidArea(new Dimension(0, 8)));
@@ -508,7 +593,7 @@ public final class DeckscapeDialog extends JFrame
             + "PvP, high-risk, bounty, Leagues, Deadman, Last Man Standing, PvP Arena, beta, tournament, speedrunning, and other no-save worlds are excluded. "
             + "Claim completed rewards from Deckscape's Challenges page.</html>");
         note.setForeground(new Color(143, 132, 108));
-        note.setFont(note.getFont().deriveFont(11f));
+        note.setFont(note.getFont().deriveFont(13f));
         page.add(note);
         return page;
     }
@@ -535,7 +620,7 @@ public final class DeckscapeDialog extends JFrame
     {
         JLabel label = new JLabel(value);
         label.setForeground(DeckscapePalette.GOLD);
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 18f));
+        label.setFont(label.getFont().deriveFont(Font.BOLD, 20f));
         label.setBorder(BorderFactory.createEmptyBorder(0, 2, 4, 2));
         label.setAlignmentX(LEFT_ALIGNMENT);
         return label;
@@ -545,6 +630,11 @@ public final class DeckscapeDialog extends JFrame
     {
         String lower = value.toLowerCase();
         return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
+    }
+
+    private static String collectionTitleText(DeckscapeState state)
+    {
+        return "Collection · " + state.getCollection().values().stream().mapToInt(Integer::intValue).sum() + " cards";
     }
 
     private static String escape(String value)
