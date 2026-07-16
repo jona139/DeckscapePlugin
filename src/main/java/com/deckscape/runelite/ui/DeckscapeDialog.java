@@ -665,7 +665,7 @@ public final class DeckscapeDialog extends JFrame
             int width = parent.getWidth() > 0 ? parent.getWidth() : 5 * targetWidth + 4 * hgap;
             int columns = columns(width);
             int tileW = (width - (columns - 1) * hgap) / columns;
-            int tileH = Math.round(tileW * 1.5f);
+            int tileH = CardTile.collectionHeightForWidth(tileW);
             int rows = (parent.getComponentCount() + columns - 1) / columns;
             return new Dimension(width, rows * tileH + Math.max(0, rows - 1) * vgap);
         }
@@ -673,7 +673,7 @@ public final class DeckscapeDialog extends JFrame
         @Override
         public Dimension minimumLayoutSize(Container parent)
         {
-            return new Dimension(2 * 84 + hgap, 126);
+            return new Dimension(2 * 84 + hgap, CardTile.collectionHeightForWidth(84));
         }
 
         @Override
@@ -682,7 +682,7 @@ public final class DeckscapeDialog extends JFrame
             int width = parent.getWidth();
             int columns = columns(width);
             int tileW = (width - (columns - 1) * hgap) / columns;
-            int tileH = Math.round(tileW * 1.5f);
+            int tileH = CardTile.collectionHeightForWidth(tileW);
             for (int i = 0; i < parent.getComponentCount(); i++)
             {
                 int col = i % columns;

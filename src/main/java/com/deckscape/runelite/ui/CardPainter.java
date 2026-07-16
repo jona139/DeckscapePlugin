@@ -4,17 +4,17 @@ import com.deckscape.runelite.model.DeckscapeCard;
 import com.deckscape.runelite.model.PackType;
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.GradientPaint;
 import java.awt.Graphics2D;
-import java.awt.RadialGradientPaint;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +38,7 @@ public final class CardPainter
     private static final Color NAME_TEXT = new Color(0xfff0c8);
     private static final Color NAME_RULE = new Color(255, 235, 179, 115);
     private static final Color GEM_TEXT = new Color(0x2a1c40);
-    private static final Color GEM_EDGE = new Color(0x8a6b28);
-    private static final Color BRASS = new Color(0xc9a24b);
     private static final Color COST_TEXT = new Color(0xf8efcf);
-    private static final Color COST_EDGE = new Color(0xbba967);
-    private static final Color OWNED_BG = new Color(0xf3d77a);
     private static final Color OWNED_TEXT = new Color(0x2b190a);
 
     // Posterised radial gradient grid, identical to assets.tsx CardBackBands.
@@ -84,7 +80,14 @@ public final class CardPainter
         g.fillRect(inner.x, inner.y, inner.width, inner.height);
         RegionTheme theme = RegionTheme.forFaction(card.getFaction());
         BufferedImage backdrop = theme.backdrop == null ? null : softBackdrop(theme.backdrop);
-        if (backdrop != null) drawCover(g, backdrop, inner);
+        if (backdrop != null)
+        {
+            // Match the web's scale(1.12): blurred edges remain outside the portrait.
+            int zoomX = Math.round(inner.width * .06f);
+            int zoomY = Math.round(inner.height * .06f);
+            drawCover(g, backdrop, new Rectangle(inner.x - zoomX, inner.y - zoomY,
+                inner.width + zoomX * 2, inner.height + zoomY * 2));
+        }
         BufferedImage art = DeckscapeImages.loadCardArt(card);
         if (art != null)
         {
@@ -95,12 +98,14 @@ public final class CardPainter
             int artPad = Math.max(1, Math.round(2 * s));
             Rectangle artBox = new Rectangle(inner.x + artPad, inner.y + artPad,
                 inner.width - artPad * 2, inner.height - artPad * 2);
+            Rectangle shadowBox = new Rectangle(artBox.x, artBox.y + Math.max(1, Math.round(s)), artBox.width, artBox.height);
+            drawContain(g, silhouette("card:" + card.getId(), art), shadowBox);
             drawContain(g, art, artBox);
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         }
-        else if (backdrop == null)
+        else
         {
-            g.setFont(new Font("Serif", Font.BOLD, Math.max(14, Math.round(20 * s))));
+            g.setFont(DeckscapeFonts.display(Math.max(14, Math.round(20 * s))));
             g.setColor(new Color(255, 255, 255, 235));
             String initials = initials(card.getName());
             FontMetrics fm = g.getFontMetrics();
@@ -110,11 +115,10 @@ public final class CardPainter
         g.setClip(clip);
 
         // Name plate over the bottom of the portrait; grows for two-line names.
-        int nameSize = Math.max(10, Math.round(13.5f * s));
-        g.setFont(new Font("Serif", Font.BOLD, nameSize));
-        int gemSize = Math.max(16, Math.round(24 * s));
+        int nameSize = Math.max(9, Math.round(11.5f * s));
+        g.setFont(DeckscapeFonts.display(nameSize));
         int nameX = inner.x + Math.round(6 * s);
-        int nameWidth = inner.width - Math.round(6 * s) - gemSize - Math.round(8 * s);
+        int nameWidth = inner.width - Math.round(12 * s);
         List<String> nameLines = wrapName(g.getFontMetrics(), card.getName(), nameWidth);
         FontMetrics nameMetrics = g.getFontMetrics();
         int plateH = Math.max(Math.max(20, Math.round(29 * s)),
@@ -128,17 +132,14 @@ public final class CardPainter
         drawNameLines(g, nameLines, nameX, plateY, plateH);
 
         // Cost gem (top-left) and combat-style icon (top-right).
-        int costSize = Math.max(17, Math.round(25 * s));
+        int costSize = Math.max(17, Math.round(24 * s));
         int corner = inner.x + Math.max(2, Math.round(2 * s));
         int costY = inner.y + Math.max(2, Math.round(2 * s));
-        g.setPaint(new GradientPaint(corner, costY, new Color(0x3b2a4c), corner + costSize, costY + costSize, new Color(0x171b2c)));
-        g.fill(new RoundRectangle2D.Float(corner, costY, costSize, costSize, costSize * .5f, costSize * .5f));
-        g.setColor(COST_EDGE);
-        g.setStroke(new BasicStroke(Math.max(1.5f, 2 * s)));
-        g.draw(new RoundRectangle2D.Float(corner, costY, costSize, costSize, costSize * .5f, costSize * .5f));
+        BufferedImage costSocket = DeckscapeImages.load("/com/deckscape/runelite/ui/cost_socket.png");
+        if (costSocket != null) g.drawImage(costSocket, corner, costY, costSize, costSize, null);
         g.setColor(COST_TEXT);
-        g.setFont(new Font("Serif", Font.BOLD, Math.max(11, Math.round(15 * s))));
-        drawCenteredIn(g, String.valueOf(card.getCost()), corner, costY, costSize, costSize);
+        g.setFont(DeckscapeFonts.display(Math.max(10, Math.round(12 * s))));
+        drawCenteredIn(g, String.valueOf(card.getCost()), corner, costY - Math.max(0, Math.round(1 * s)), costSize, costSize);
 
         BufferedImage styleIcon = DeckscapeImages.load("/com/deckscape/runelite/regions/style_" + card.getStyle().name().toLowerCase() + ".png");
         if (styleIcon != null)
@@ -159,38 +160,45 @@ public final class CardPainter
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         }
 
-        // Power gem (units) or a spark for actions/equipment, bottom-right over the plate.
-        int gemX = inner.x + inner.width - gemSize - Math.round(3 * s);
-        int gemY = h - edge - pad - gemSize + 1 - Math.round(3 * s);
-        g.setPaint(new RadialGradientPaint(gemX + gemSize * .35f, gemY + gemSize * .3f, gemSize,
-            new float[] {0f, 1f}, new Color[] {new Color(0xfff2c0), BRASS}));
-        g.fillOval(gemX, gemY, gemSize, gemSize);
-        g.setColor(GEM_EDGE);
-        g.setStroke(new BasicStroke(Math.max(1.5f, 2 * s)));
-        g.drawOval(gemX, gemY, gemSize, gemSize);
-        g.setColor(GEM_TEXT);
+        // Website collection geometry: the stat socket sits above the nameplate.
+        int gemW = Math.max(17, Math.round(24 * s));
+        int gemH = card.getKind() == DeckscapeCard.Kind.UNIT
+            ? Math.max(14, Math.round(20 * s)) : Math.max(17, Math.round(24 * s));
+        int gemX = w - Math.round(7 * s) - gemW;
+        int gemY = h - Math.round(41 * s) - gemH;
         if (card.getKind() == DeckscapeCard.Kind.UNIT)
         {
-            g.setFont(new Font("Serif", Font.BOLD, Math.max(11, Math.round(14 * s))));
-            drawCenteredIn(g, String.valueOf(card.getPower()), gemX, gemY, gemSize, gemSize);
+            BufferedImage heart = DeckscapeImages.load("/com/deckscape/runelite/ui/heart.png");
+            if (heart != null) g.drawImage(heart, gemX, gemY, gemW, gemH, null);
+            g.setColor(Color.WHITE);
+            g.setFont(DeckscapeFonts.display(Math.max(10, Math.round(12 * s))));
+            drawOutlinedCentered(g, String.valueOf(card.getPower()), gemX + Math.round(1 * s), gemY, gemW, gemH);
         }
         else
         {
-            g.fill(spark(gemX + gemSize / 2f, gemY + gemSize / 2f, gemSize * .33f));
+            BufferedImage actionSocket = DeckscapeImages.load("/com/deckscape/runelite/ui/action_socket.png");
+            if (actionSocket != null) g.drawImage(actionSocket, gemX, gemY, gemW, gemH, null);
+            g.setColor(GEM_TEXT);
+            g.fill(spark(gemX + gemW / 2f, gemY + gemH / 2f, Math.min(gemW, gemH) * .28f));
         }
 
-        // Owned count above the power gem.
+        // Collection quantity protrudes below the lower-left card edge.
         if (owned >= 0)
         {
-            g.setFont(new Font("SansSerif", Font.BOLD, Math.max(10, Math.round(12 * s))));
+            g.setFont(DeckscapeFonts.display(Math.max(10, Math.round(13 * s))));
             FontMetrics fm = g.getFontMetrics();
             String label = "×" + owned;
-            int badgeW = Math.max(gemSize, fm.stringWidth(label) + Math.round(8 * s));
-            int badgeH = Math.max(13, Math.round(21 * s));
-            int badgeX = inner.x + inner.width - badgeW - Math.round(2 * s);
-            int badgeY = gemY - badgeH - Math.round(6 * s);
-            g.setColor(OWNED_BG);
-            g.fill(new RoundRectangle2D.Float(badgeX, badgeY, badgeW, badgeH, badgeH * .6f, badgeH * .6f));
+            int badgeW = Math.max(Math.round(31 * s), fm.stringWidth(label) + Math.round(12 * s));
+            int badgeH = Math.max(16, Math.round(22 * s));
+            int badgeX = Math.round(6 * s);
+            int badgeY = h - Math.round(11 * s);
+            g.setPaint(new GradientPaint(badgeX, badgeY, new Color(0xfff0b9), badgeX, badgeY + badgeH, new Color(0xd9b965)));
+            g.fillRect(badgeX, badgeY, badgeW, badgeH);
+            g.setColor(new Color(0x4a3219));
+            g.setStroke(new BasicStroke(Math.max(1.5f, 2 * s)));
+            g.drawRect(badgeX, badgeY, badgeW, badgeH);
+            g.setColor(new Color(255, 248, 207, 165));
+            g.drawRect(badgeX + 2, badgeY + 2, badgeW - 4, badgeH - 4);
             g.setColor(OWNED_TEXT);
             drawCenteredIn(g, label, badgeX, badgeY, badgeW, badgeH);
         }
@@ -499,6 +507,21 @@ public final class CardPainter
         g.drawString(text, x + (w - fm.stringWidth(text)) / 2, y + (h + fm.getAscent() - fm.getDescent()) / 2);
     }
 
+    private static void drawOutlinedCentered(Graphics2D g, String text, int x, int y, int w, int h)
+    {
+        FontMetrics fm = g.getFontMetrics();
+        int textX = x + (w - fm.stringWidth(text)) / 2;
+        int textY = y + (h + fm.getAscent() - fm.getDescent()) / 2;
+        Color fill = g.getColor();
+        g.setColor(new Color(0x3c1307));
+        g.drawString(text, textX - 1, textY);
+        g.drawString(text, textX + 1, textY);
+        g.drawString(text, textX, textY - 1);
+        g.drawString(text, textX, textY + 1);
+        g.setColor(fill);
+        g.drawString(text, textX, textY);
+    }
+
     private static void drawContain(Graphics2D g, BufferedImage image, Rectangle r)
     {
         double scale = Math.min(r.width / (double) image.getWidth(), r.height / (double) image.getHeight());
@@ -533,23 +556,25 @@ public final class CardPainter
         });
     }
 
-    /**
-     * The web blurs the scenery behind card art (2px); approximated here by caching the
-     * backdrop at 1/6 resolution and letting bilinear upscaling soften it.
-     */
+    /** Caches a modestly downscaled 3x3 blur matching the web portrait's 2px filter. */
     private static BufferedImage softBackdrop(String resource)
     {
         return SOFT_BACKDROPS.computeIfAbsent(resource, key -> {
             BufferedImage source = DeckscapeImages.load(key);
             if (source == null) return null;
-            int w = Math.max(1, source.getWidth() / 6);
-            int h = Math.max(1, source.getHeight() / 6);
+            double scale = Math.min(1d, 320d / Math.max(source.getWidth(), source.getHeight()));
+            int w = Math.max(1, (int) Math.round(source.getWidth() * scale));
+            int h = Math.max(1, (int) Math.round(source.getHeight() * scale));
             BufferedImage small = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
             Graphics2D g = small.createGraphics();
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             g.drawImage(source, 0, 0, w, h, null);
             g.dispose();
-            return small;
+            float[] blur = new float[9];
+            java.util.Arrays.fill(blur, 1f / blur.length);
+            BufferedImage softened = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            new ConvolveOp(new Kernel(3, 3, blur), ConvolveOp.EDGE_NO_OP, null).filter(small, softened);
+            return softened;
         });
     }
 }

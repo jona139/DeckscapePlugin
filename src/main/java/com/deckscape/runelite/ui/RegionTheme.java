@@ -24,18 +24,18 @@ public final class RegionTheme
 
     static
     {
-        region("misthalin", 0x2b69b7, 0x15305e, 0x9dcaff, true);
-        region("karamja", 0x299464, 0x104b34, 0x97e6b8, false);
-        region("asgarnia", 0x486fba, 0x273c68, 0xc3d6ff, false);
-        region("kandarin", 0xa4443d, 0x58231f, 0xf1a798, false);
-        region("fremennik", 0x89654e, 0x453126, 0xd8b394, false);
-        region("morytania", 0x286c7d, 0x123a49, 0x8ed1db, false);
-        region("desert", 0x2f9274, 0x154a3c, 0xa4e1c0, false);
-        region("tirannwn", 0x8d949b, 0x454b52, 0xe0e5e8, false);
-        region("wilderness", 0x5c6268, 0x292d31, 0xb8c0c6, false);
-        region("kourend", 0x34799e, 0x173c55, 0x91cae8, false);
-        region("varlamore", 0xe9a414, 0xbd5009, 0xffdc62, false);
-        region("universal", 0x34456d, 0x18223b, 0x89a6ff, true);
+        region("misthalin", 0x2b69b7, 0x15305e, 0x9dcaff);
+        region("karamja", 0x299464, 0x104b34, 0x97e6b8);
+        region("asgarnia", 0x486fba, 0x273c68, 0xc3d6ff);
+        region("kandarin", 0xa4443d, 0x58231f, 0xf1a798);
+        region("fremennik", 0x89654e, 0x453126, 0xd8b394);
+        region("morytania", 0x286c7d, 0x123a49, 0x8ed1db);
+        region("desert", 0x2f9274, 0x154a3c, 0xa4e1c0);
+        region("tirannwn", 0x8d949b, 0x454b52, 0xe0e5e8);
+        region("wilderness", 0x5c6268, 0x292d31, 0xb8c0c6);
+        region("kourend", 0x34799e, 0x173c55, 0x91cae8);
+        region("varlamore", 0xe9a414, 0xbd5009, 0xffdc62);
+        region("universal", 0x34456d, 0x18223b, 0x89a6ff);
     }
 
     private RegionTheme(int color, int deep, int glow, String crest, String backdrop)
@@ -47,11 +47,11 @@ public final class RegionTheme
         this.backdrop = backdrop;
     }
 
-    private static void region(String key, int color, int deep, int glow, boolean hasBackdrop)
+    private static void region(String key, int color, int deep, int glow)
     {
         BY_FACTION.put(key, new RegionTheme(color, deep, glow,
             REGIONS + "crest_" + key + ".png",
-            hasBackdrop ? REGIONS + "backdrop_" + key + ".png" : null));
+            REGIONS + "backdrop_" + key + ".png"));
     }
 
     public static RegionTheme forFaction(String faction)

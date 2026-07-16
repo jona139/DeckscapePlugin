@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
@@ -39,6 +40,7 @@ public final class DeckscapeImages
     private static final Map<String, Call> REMOTE_CALLS = new ConcurrentHashMap<>();
     private static final Set<String> REMOTE_PENDING = ConcurrentHashMap.newKeySet();
     private static final Map<String, Long> REMOTE_FAILED = new ConcurrentHashMap<>();
+    private static final Map<String, String> LOCAL_FALLBACK_ID = localFallbackIds();
     private static volatile OkHttpClient httpClient;
     private static volatile BooleanSupplier remoteEnabled = () -> false;
     private static volatile Runnable repaintCallback = () -> { };
@@ -76,7 +78,13 @@ public final class DeckscapeImages
     /** Uses bundled art immediately and schedules a consent-gated HTTPS fallback when it is absent. */
     public static BufferedImage loadCardArt(DeckscapeCard card)
     {
-        BufferedImage bundled = load(card.getArtResource());
+        // Mirror the website's cardArtSources order: current id, explicit legacy
+        // resource, known local substitute, then the remote catalog URL.
+        BufferedImage bundled = loadOptional(cardResource(card.getId(), ".png"));
+        if (bundled == null) bundled = loadOptional(cardResource(card.getId(), ".gif"));
+        if (bundled == null) bundled = loadOptional(card.getArtResource());
+        String fallbackId = LOCAL_FALLBACK_ID.get(card.getId());
+        if (bundled == null && fallbackId != null) bundled = loadOptional(cardResource(fallbackId, ".png"));
         if (bundled != null) return bundled;
 
         String key = card.getId() + "|" + String.valueOf(card.getArtUrl());
@@ -94,6 +102,39 @@ public final class DeckscapeImages
         }
         if (REMOTE_PENDING.add(key)) fetchCandidate(key, candidates, 0);
         return null;
+    }
+
+    private static BufferedImage loadOptional(String resource)
+    {
+        if (resource == null || resource.isEmpty() || DeckscapeImages.class.getResource(resource) == null) return null;
+        return load(resource);
+    }
+
+    private static String cardResource(String id, String extension)
+    {
+        return "/com/deckscape/runelite/cards/" + id + extension;
+    }
+
+    private static Map<String, String> localFallbackIds()
+    {
+        Map<String, String> ids = new HashMap<>();
+        ids.put("abyssal_antibody", "abyssal_walker");
+        ids.put("blue_party_hat", "santa_hat");
+        ids.put("cave_goblin_child", "cave_goblin_ranger");
+        ids.put("dizanas_quiver", "dizana");
+        ids.put("dragon_knife", "dragon_dart");
+        ids.put("elemental_blast", "elemental_strike");
+        ids.put("elemental_bolt", "elemental_strike");
+        ids.put("elemental_surge", "elemental_strike");
+        ids.put("elemental_wave", "elemental_strike");
+        ids.put("giant_wasp", "giant_spider");
+        ids.put("gilded_axe", "magic_axe");
+        ids.put("ham_joint", "ham_member");
+        ids.put("magic_ball", "elemental_strike");
+        ids.put("the_crowd_demands_more", "colosseum_guard");
+        ids.put("tonalztics_of_ralos", "dizana");
+        ids.put("tree_spirit", "spirit_tree");
+        return ids;
     }
 
     static List<String> remoteCandidates(String cardName, String artUrl)

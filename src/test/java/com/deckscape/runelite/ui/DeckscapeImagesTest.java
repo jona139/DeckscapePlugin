@@ -1,9 +1,11 @@
 package com.deckscape.runelite.ui;
 
+import com.deckscape.runelite.model.DeckscapeCard;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DeckscapeImagesTest
@@ -35,5 +37,27 @@ class DeckscapeImagesTest
 
         assertEquals(2, candidates.size());
         assertTrue(candidates.get(0).startsWith("https://oldschool.runescape.wiki/w/Special:FilePath/"));
+    }
+
+    @Test
+    void bundlesEveryWebRegionBackdrop()
+    {
+        for (String faction : new String[] {"Misthalin", "Karamja", "Asgarnia", "Kandarin", "Fremennik",
+            "Morytania", "Desert", "Tirannwn", "Wilderness", "Kourend", "Varlamore", "Universal"})
+        {
+            RegionTheme theme = RegionTheme.forFaction(faction);
+            assertNotNull(theme.backdrop, faction);
+            assertNotNull(DeckscapeImages.load(theme.backdrop), faction);
+        }
+    }
+
+    @Test
+    void loadsWebBundledArtForServerCatalogCards()
+    {
+        DeckscapeCard card = new DeckscapeCard("demonic_gorilla", "Demonic Gorilla", "Kandarin",
+            DeckscapeCard.Rarity.EPIC, DeckscapeCard.Kind.UNIT, DeckscapeCard.Style.MELEE,
+            10, 9, "", null, null);
+
+        assertNotNull(DeckscapeImages.loadCardArt(card));
     }
 }

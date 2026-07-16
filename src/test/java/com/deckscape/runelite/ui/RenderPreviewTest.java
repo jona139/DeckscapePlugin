@@ -26,6 +26,10 @@ class RenderPreviewTest
         face("face_magic_ball", CardCatalog.byId("magic_ball"), 0, 200, 300);
         face("face_smite_universal", CardCatalog.byId("smite"), 2, 200, 300);
         face("face_small_tile", CardCatalog.byId("archmage_sedridor"), 1, 124, 186);
+        collectionFace("face_kandarin_collection", new DeckscapeCard("demonic_gorilla", "Demonic Gorilla", "Kandarin",
+            DeckscapeCard.Rarity.EPIC, DeckscapeCard.Kind.UNIT, DeckscapeCard.Style.MELEE, 10, 9, "", null), 2, 200);
+        collectionFace("face_varlamore_collection", new DeckscapeCard("blood_moon", "Blood Moon", "Varlamore",
+            DeckscapeCard.Rarity.RARE, DeckscapeCard.Kind.UNIT, DeckscapeCard.Style.MELEE, 9, 9, "", null), 3, 200);
 
         back("back_misthalin", "Misthalin");
         back("back_universal", "Universal");
@@ -51,6 +55,16 @@ class RenderPreviewTest
         Graphics2D g = image.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         CardPainter.paintBack(g, 0, 0, 200, 300, faction);
+        g.dispose();
+        ImageIO.write(image, "png", new File(OUT, name + ".png"));
+    }
+
+    private static void collectionFace(String name, DeckscapeCard card, int owned, int width) throws Exception
+    {
+        int cardHeight = CardTile.cardHeightForWidth(width);
+        BufferedImage image = new BufferedImage(width, CardTile.collectionHeightForWidth(width), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        CardPainter.paintFace(g, 0, 0, width, cardHeight, card, owned);
         g.dispose();
         ImageIO.write(image, "png", new File(OUT, name + ".png"));
     }

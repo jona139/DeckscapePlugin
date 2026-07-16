@@ -25,8 +25,8 @@ public class CardTile extends JComponent
     {
         this.card = card;
         this.owned = owned;
-        setPreferredSize(new Dimension(124, 186));
-        setMinimumSize(new Dimension(84, 126));
+        setPreferredSize(new Dimension(124, owned >= 0 ? collectionHeightForWidth(124) : cardHeightForWidth(124)));
+        setMinimumSize(new Dimension(84, owned >= 0 ? collectionHeightForWidth(84) : cardHeightForWidth(84)));
         setToolTipText(card.getName() + " · " + card.getRarity());
         if (onClick != null)
         {
@@ -50,7 +50,18 @@ public class CardTile extends JComponent
 
     protected void paintCard(Graphics2D g, int width, int height)
     {
-        CardPainter.paintFace(g, 0, 0, width, height, card, owned);
+        int cardHeight = owned >= 0 ? Math.min(height, cardHeightForWidth(width)) : height;
+        CardPainter.paintFace(g, 0, 0, width, cardHeight, card, owned);
+    }
+
+    static int cardHeightForWidth(int width)
+    {
+        return Math.round(width * 174f / 116f);
+    }
+
+    static int collectionHeightForWidth(int width)
+    {
+        return cardHeightForWidth(width) + Math.max(7, Math.round(width * 11f / 126f));
     }
 
     public DeckscapeCard getCard() { return card; }
