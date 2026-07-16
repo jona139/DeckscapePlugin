@@ -14,6 +14,9 @@ public interface DeckscapeConfig extends Config
             + "pack actions, a revocable device token, and your IP address to the Deckscape service, and "
             + "downloads card artwork from the Old School RuneScape Wiki. "
             + "No RuneScape login credentials or other players' data are sent.",
+        warning = "Enabling this option submits your IP address, XP gains, verified challenge events, world-type flags, "
+            + "pack actions, and a revocable device token to a 3rd-party server not controlled or verified by the "
+            + "RuneLite Developers.",
         position = 0
     )
     default boolean dataSharingConsent()

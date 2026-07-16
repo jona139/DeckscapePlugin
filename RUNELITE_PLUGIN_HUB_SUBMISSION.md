@@ -87,6 +87,7 @@ Save the final 40-character hash printed by the last command. Plugin Hub builds 
 ```properties
 repository=https://github.com/jona139/DeckscapePlugin.git
 commit=REPLACE_WITH_THE_FULL_40_CHARACTER_PLUGIN_COMMIT
+warning=This plugin submits your IP address, XP gains, verified challenge events, world-type flags, pack actions, and a revocable device token to a 3rd-party server not controlled or verified by the RuneLite Developers.
 ```
 
 5. Check that the marker is the only intentional change in the Plugin Hub fork.
