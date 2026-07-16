@@ -4,6 +4,7 @@ import com.deckscape.runelite.DeckscapeConfig;
 import com.deckscape.runelite.DeckscapeStore;
 import com.deckscape.runelite.model.CardCatalog;
 import com.deckscape.runelite.model.DeckscapeState;
+import com.deckscape.runelite.model.PackType;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -308,7 +309,7 @@ public final class DeckscapePanel extends PluginPanel
             syncNowButton.setEnabled(config.dataSharingConsent() && state.isLinked());
             codeField.setText(state.getPairingCode().isEmpty() ? "CREATING…" : state.getPairingCode());
             pairingBox.setVisible(config.dataSharingConsent() && !state.isLinked());
-            int packs = state.getPacks().values().stream().mapToInt(Integer::intValue).sum();
+            int packs = java.util.Arrays.stream(PackType.inventoryTypes()).mapToInt(state::packCount).sum();
             long uniqueCards = CardCatalog.all().stream()
                 .filter(card -> state.getCollection().getOrDefault(card.getId(), 0) > 0)
                 .count();

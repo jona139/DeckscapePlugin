@@ -25,5 +25,10 @@ class CollectionRaritySummaryTest
         assertTrue(summary.contains("Common 1/"));
         assertTrue(summary.contains("Rare 1/"));
         assertTrue(summary.contains("4 total copies"));
+        assertTrue(summary.contains("<col=5f5f5f>Common"));
+        assertTrue(summary.contains("<col=237a32>Uncommon"));
+        assertTrue(summary.contains("<col=245bb5>Rare"));
+        assertTrue(summary.contains("<col=7737a8>Epic"));
+        assertTrue(summary.contains("<col=b35c00>Legendary"));
     }
 }

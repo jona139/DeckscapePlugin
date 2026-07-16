@@ -32,6 +32,19 @@ class DeckscapeStateSyncTest
     }
 
     @Test
+    void inventoryTotalExcludesHiddenLegacyAndFuturePackTypes()
+    {
+        DeckscapeState state = new DeckscapeState();
+        for (int i = 0; i < 4; i++) state.addPack(PackType.GENERAL);
+        for (int i = 0; i < 3; i++) state.addPack(PackType.FACTION_ASGARNIA);
+
+        int visibleTotal = java.util.Arrays.stream(PackType.inventoryTypes())
+            .mapToInt(state::packCount).sum();
+
+        assertEquals(4, visibleTotal);
+    }
+
+    @Test
     void revokedLinkClearsLocalAccountAndAllowsPairingAgain()
     {
         DeckscapeState state = new DeckscapeState();

@@ -20,6 +20,11 @@ public enum PackType
 
     private final String displayName;
 
+    private static final PackType[] INVENTORY_TYPES = {
+        GENERAL, COMBAT, SKILLING,
+        FACTION_MISTHALIN, FACTION_VARLAMORE, FACTION_KANDARIN,
+    };
+
     PackType(String displayName)
     {
         this.displayName = displayName;
@@ -28,5 +33,11 @@ public enum PackType
     public String getDisplayName()
     {
         return displayName;
+    }
+
+    /** Pack types currently available in the public inventory and included in its total. */
+    public static PackType[] inventoryTypes()
+    {
+        return INVENTORY_TYPES.clone();
     }
 }

@@ -544,11 +544,7 @@ public final class DeckscapeDialog extends JFrame
         listPanel.setOpaque(false);
         listPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        PackType[] visiblePacks = {
-            PackType.GENERAL, PackType.COMBAT, PackType.SKILLING,
-            PackType.FACTION_MISTHALIN, PackType.FACTION_VARLAMORE, PackType.FACTION_KANDARIN,
-        };
-        for (PackType type : visiblePacks)
+        for (PackType type : PackType.inventoryTypes())
         {
             JPanel row = new JPanel(new BorderLayout(15, 0));
             row.setBackground(DeckscapePalette.PANEL);

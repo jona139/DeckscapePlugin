@@ -13,11 +13,11 @@ public final class CollectionRaritySummary
 
     static
     {
-        COLORS.put(DeckscapeCard.Rarity.COMMON, "b8b8b8");
-        COLORS.put(DeckscapeCard.Rarity.UNCOMMON, "5fc56e");
-        COLORS.put(DeckscapeCard.Rarity.RARE, "5b9dff");
-        COLORS.put(DeckscapeCard.Rarity.EPIC, "c978ff");
-        COLORS.put(DeckscapeCard.Rarity.LEGENDARY, "ffb347");
+        COLORS.put(DeckscapeCard.Rarity.COMMON, "5f5f5f");
+        COLORS.put(DeckscapeCard.Rarity.UNCOMMON, "237a32");
+        COLORS.put(DeckscapeCard.Rarity.RARE, "245bb5");
+        COLORS.put(DeckscapeCard.Rarity.EPIC, "7737a8");
+        COLORS.put(DeckscapeCard.Rarity.LEGENDARY, "b35c00");
     }
 
     private CollectionRaritySummary() { }
@@ -35,7 +35,7 @@ public final class CollectionRaritySummary
             if (owned > 0) ownedUnique.merge(card.getRarity(), 1, Integer::sum);
         }
 
-        StringBuilder result = new StringBuilder("<col=ffd45e>Deckscape collection</col>: ");
+        StringBuilder result = new StringBuilder("<col=8a5a00>Deckscape collection</col>: ");
         DeckscapeCard.Rarity[] rarities = DeckscapeCard.Rarity.values();
         for (int i = 0; i < rarities.length; i++)
         {
