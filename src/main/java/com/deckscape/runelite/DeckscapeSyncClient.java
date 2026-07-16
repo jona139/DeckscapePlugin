@@ -24,7 +24,7 @@ public final class DeckscapeSyncClient
     private static final String ECONOMY_URL = "https://ahqakitttmbcpxdpdlkx.supabase.co/functions/v1/economy";
     private static final String PUBLISHABLE_KEY = "sb_publishable_cJq6CMLU68GNrfxe5XUPyQ_VRNCuZBX";
     private final OkHttpClient httpClient;
-    private final Gson gson = new Gson();
+    private final Gson gson;
 
     public static final class HttpException extends Exception
     {
@@ -48,9 +48,10 @@ public final class DeckscapeSyncClient
     }
 
     @Inject
-    public DeckscapeSyncClient(OkHttpClient httpClient)
+    public DeckscapeSyncClient(OkHttpClient httpClient, Gson gson)
     {
         this.httpClient = httpClient;
+        this.gson = gson;
     }
 
     public CompletableFuture<JsonObject> request(String deviceToken, String action, JsonObject payload)

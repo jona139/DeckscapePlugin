@@ -12,13 +12,14 @@ public final class DeckscapeStore
     private static final String GROUP = "deckscape";
     private static final String KEY = "prototypeState";
     private final ConfigManager configManager;
-    private final Gson gson = new Gson();
+    private final Gson gson;
     private DeckscapeState state;
 
     @Inject
-    public DeckscapeStore(ConfigManager configManager)
+    public DeckscapeStore(ConfigManager configManager, Gson gson)
     {
         this.configManager = configManager;
+        this.gson = gson;
     }
 
     public DeckscapeState load()
