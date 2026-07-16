@@ -568,6 +568,8 @@ public final class DeckscapePlugin extends Plugin
             JsonObject runelite = serverState.getAsJsonObject("runelite");
             if (runelite.has("xpTowardsPack")) state.setXpTowardsPack(runelite.get("xpTowardsPack").getAsInt());
             if (runelite.has("xpRewardInterval")) state.setXpRewardInterval(runelite.get("xpRewardInterval").getAsInt());
+            if (runelite.has("xpTowardsCurrency")) state.setXpTowardsCurrency(runelite.get("xpTowardsCurrency").getAsInt());
+            if (runelite.has("xpCurrencyRewardInterval")) state.setXpCurrencyRewardInterval(runelite.get("xpCurrencyRewardInterval").getAsInt());
         }
     }
 

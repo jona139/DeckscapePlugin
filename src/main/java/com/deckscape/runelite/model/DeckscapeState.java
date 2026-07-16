@@ -19,8 +19,10 @@ public final class DeckscapeState
     private int coins;
     private int stardust;
     private int goldenNuggets;
-    private int xpRewardInterval = 35000;
+    private int xpRewardInterval = 50000;
     private int xpTowardsPack;
+    private int xpCurrencyRewardInterval = 10000;
+    private int xpTowardsCurrency;
     private String deviceToken;
     private String pairingCode;
     private String pendingDeviceToken;
@@ -73,10 +75,14 @@ public final class DeckscapeState
     public void setStardust(int stardust) { this.stardust = Math.max(0, stardust); }
     public int getGoldenNuggets() { return goldenNuggets; }
     public void setGoldenNuggets(int goldenNuggets) { this.goldenNuggets = Math.max(0, goldenNuggets); }
-    public int getXpRewardInterval() { return xpRewardInterval <= 0 ? 35000 : xpRewardInterval; }
+    public int getXpRewardInterval() { return xpRewardInterval <= 0 ? 50000 : xpRewardInterval; }
     public void setXpRewardInterval(int xpRewardInterval) { this.xpRewardInterval = Math.max(1, xpRewardInterval); }
     public int getXpTowardsPack() { return xpTowardsPack; }
     public void setXpTowardsPack(int xpTowardsPack) { this.xpTowardsPack = Math.max(0, xpTowardsPack); }
+    public int getXpCurrencyRewardInterval() { return xpCurrencyRewardInterval <= 0 ? 10000 : xpCurrencyRewardInterval; }
+    public void setXpCurrencyRewardInterval(int interval) { this.xpCurrencyRewardInterval = Math.max(1, interval); }
+    public int getXpTowardsCurrency() { return xpTowardsCurrency; }
+    public void setXpTowardsCurrency(int xpTowardsCurrency) { this.xpTowardsCurrency = Math.max(0, xpTowardsCurrency); }
     public boolean isWelcomeShown() { return welcomeShown; }
     public void setWelcomeShown(boolean welcomeShown) { this.welcomeShown = welcomeShown; }
 

@@ -525,9 +525,13 @@ public final class DeckscapeDialog extends JFrame
         titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         page.add(titleRow);
 
-        JLabel testRule = new JLabel("<html>Every <b>" + String.format("%,d", state.getXpRewardInterval())
-            + " XP</b> rolls for a pack, Coins, or Stardust. Progress: "
-            + String.format("%,d", state.getXpTowardsPack()) + "/" + String.format("%,d", state.getXpRewardInterval()) + " XP</html>");
+        JLabel testRule = new JLabel("<html><b>Pack track:</b> every " + String.format("%,d", state.getXpRewardInterval())
+            + " XP gives a 50% core-pack chance. Progress: " + String.format("%,d", state.getXpTowardsPack())
+            + "/" + String.format("%,d", state.getXpRewardInterval()) + " XP.<br>"
+            + "<b>Currency track:</b> every " + String.format("%,d", state.getXpCurrencyRewardInterval())
+            + " XP gives either 100-200 Coins (80%) or 1-3 Stardust (20%). Progress: "
+            + String.format("%,d", state.getXpTowardsCurrency()) + "/"
+            + String.format("%,d", state.getXpCurrencyRewardInterval()) + " XP.</html>");
         testRule.setForeground(DeckscapePalette.MUTED);
         testRule.setFont(testRule.getFont().deriveFont(13f));
         testRule.setBorder(BorderFactory.createEmptyBorder(2, 2, 8, 2));

@@ -13,7 +13,9 @@ class DeckscapeStateSyncTest
     @Test
     void usesLaunchRewardIntervalByDefault()
     {
-        assertEquals(35000, new DeckscapeState().getXpRewardInterval());
+        DeckscapeState state = new DeckscapeState();
+        assertEquals(50000, state.getXpRewardInterval());
+        assertEquals(10000, state.getXpCurrencyRewardInterval());
     }
 
     @Test
@@ -39,6 +41,8 @@ class DeckscapeStateSyncTest
         state.setStardust(7);
         state.setGoldenNuggets(45);
         state.setXpRewardInterval(50_000);
+        state.setXpCurrencyRewardInterval(10_000);
+        state.setXpTowardsCurrency(7_500);
         state.setWelcomeShown(true);
         state.getSelectedGoldTrims().add("adventurer_archer");
         JsonObject payload = new JsonObject();
@@ -55,6 +59,8 @@ class DeckscapeStateSyncTest
         assertEquals(7, restored.getStardust());
         assertEquals(45, restored.getGoldenNuggets());
         assertEquals(50_000, restored.getXpRewardInterval());
+        assertEquals(10_000, restored.getXpCurrencyRewardInterval());
+        assertEquals(7_500, restored.getXpTowardsCurrency());
         assertTrue(restored.isWelcomeShown());
         assertTrue(restored.getSelectedGoldTrims().contains("adventurer_archer"));
         assertEquals(75, restored.getPendingEvents().get(0).getPayload().get("xp").getAsInt());

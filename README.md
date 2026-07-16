@@ -33,7 +33,8 @@ from the Deckscape website.
 - XP and challenge observations use a persisted retry outbox with stable event IDs.
 - Pack rolls, XP rewards, pack opening, card grants, and challenge progress are server-authoritative.
 - Opening a pack awards five cards plus 1-5 Stardust.
-- Every 35,000 verified XP rolls server-side for a core pack (45%), 200-400 Coins (35%), 1 Stardust (1%), or no reward (19%).
+- Every 50,000 verified XP rolls independently for a core pack (50% chance).
+- Every 10,000 verified XP separately awards either 100-200 Coins (80%) or 1-3 Stardust (20%).
 - Gold-frame tasks count only on normal main-game worlds. PvP, high-risk, bounty, Leagues, Deadman,
   Last Man Standing, PvP Arena, no-save, tournament, beta, quest-speedrunning, and Fresh Start worlds are excluded.
 - A failed or unavailable service never grants, opens, or consumes anything locally.
