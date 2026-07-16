@@ -31,6 +31,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -240,9 +241,16 @@ public final class DeckscapeDialog extends JFrame
         kind.setSelectedItem(collectionKind);
         styleFilter(kind);
 
-        JComboBox<String> ownership = new JComboBox<>(new String[] {"All cards", "Owned", "Missing"});
-        ownership.setSelectedItem(collectionOwnership);
+        JComboBox<String> ownership = new JComboBox<>(new String[] {"All cards", "Missing"});
+        ownership.setSelectedItem("Missing".equals(collectionOwnership) ? "Missing" : "All cards");
         styleFilter(ownership);
+
+        JCheckBox onlyOwned = new JCheckBox("Only owned", "Owned".equals(collectionOwnership));
+        onlyOwned.setOpaque(false);
+        onlyOwned.setForeground(DeckscapePalette.PARCHMENT);
+        onlyOwned.setFont(onlyOwned.getFont().deriveFont(13f));
+        onlyOwned.setFocusPainted(false);
+        onlyOwned.setToolTipText("Hide cards you have not collected");
 
         JComboBox<String> sort = new JComboBox<>(new String[] {
             "Name A-Z", "Name Z-A", "Rarity: Common first", "Rarity: Legendary first",
@@ -260,6 +268,7 @@ public final class DeckscapeDialog extends JFrame
         sortLabel.setFont(sortLabel.getFont().deriveFont(13f));
         searchRow.add(searchLabel);
         searchRow.add(search);
+        searchRow.add(onlyOwned);
         searchRow.add(ownership);
         selectRow.add(faction);
         selectRow.add(rarity);
@@ -303,7 +312,21 @@ public final class DeckscapeDialog extends JFrame
         faction.addActionListener(event -> { collectionFaction = String.valueOf(faction.getSelectedItem()); rebuild.run(); });
         rarity.addActionListener(event -> { collectionRarity = String.valueOf(rarity.getSelectedItem()); rebuild.run(); });
         kind.addActionListener(event -> { collectionKind = String.valueOf(kind.getSelectedItem()); rebuild.run(); });
-        ownership.addActionListener(event -> { collectionOwnership = String.valueOf(ownership.getSelectedItem()); rebuild.run(); });
+        onlyOwned.addActionListener(event -> {
+            collectionOwnership = onlyOwned.isSelected() ? "Owned" : "All cards";
+            if (onlyOwned.isSelected()) ownership.setSelectedItem("All cards");
+            rebuild.run();
+        });
+        ownership.addActionListener(event -> {
+            String selected = String.valueOf(ownership.getSelectedItem());
+            if ("Missing".equals(selected))
+            {
+                onlyOwned.setSelected(false);
+                collectionOwnership = "Missing";
+            }
+            else if (!onlyOwned.isSelected()) collectionOwnership = "All cards";
+            rebuild.run();
+        });
         sort.addActionListener(event -> { collectionSort = String.valueOf(sort.getSelectedItem()); rebuild.run(); });
         rebuild.run();
         return page;

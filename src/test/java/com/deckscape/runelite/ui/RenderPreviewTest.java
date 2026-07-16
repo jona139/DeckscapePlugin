@@ -30,6 +30,7 @@ class RenderPreviewTest
             DeckscapeCard.Rarity.EPIC, DeckscapeCard.Kind.UNIT, DeckscapeCard.Style.MELEE, 10, 9, "", null), 2, 200);
         collectionFace("face_varlamore_collection", new DeckscapeCard("blood_moon", "Blood Moon", "Varlamore",
             DeckscapeCard.Rarity.RARE, DeckscapeCard.Kind.UNIT, DeckscapeCard.Style.MELEE, 9, 9, "", null), 3, 200);
+        collectionTile("face_unowned", CardCatalog.byId("wizard_grayzag"), 0, 200);
 
         back("back_misthalin", "Misthalin");
         back("back_universal", "Universal");
@@ -65,6 +66,17 @@ class RenderPreviewTest
         BufferedImage image = new BufferedImage(width, CardTile.collectionHeightForWidth(width), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         CardPainter.paintFace(g, 0, 0, width, cardHeight, card, owned);
+        g.dispose();
+        ImageIO.write(image, "png", new File(OUT, name + ".png"));
+    }
+
+    private static void collectionTile(String name, DeckscapeCard card, int owned, int width) throws Exception
+    {
+        CardTile tile = new CardTile(card, owned);
+        tile.setSize(width, CardTile.collectionHeightForWidth(width));
+        BufferedImage image = new BufferedImage(tile.getWidth(), tile.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        tile.paint(g);
         g.dispose();
         ImageIO.write(image, "png", new File(OUT, name + ".png"));
     }

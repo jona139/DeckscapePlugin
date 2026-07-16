@@ -1,13 +1,17 @@
 package com.deckscape.runelite.ui;
 
 import com.deckscape.runelite.model.DeckscapeCard;
+import java.awt.AlphaComposite;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.color.ColorSpace;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
 import javax.swing.JComponent;
 
 /** A collection tile rendered with the shared web-style card face. */
@@ -44,8 +48,22 @@ public class CardTile extends JComponent
     {
         Graphics2D g = (Graphics2D) graphics.create();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        paintCard(g, getWidth(), getHeight());
+        if (owned == 0) paintUnowned(g); else paintCard(g, getWidth(), getHeight());
         g.dispose();
+    }
+
+    private void paintUnowned(Graphics2D g)
+    {
+        BufferedImage color = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D cardGraphics = color.createGraphics();
+        cardGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        paintCard(cardGraphics, getWidth(), getHeight());
+        cardGraphics.dispose();
+
+        BufferedImage gray = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+        new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null).filter(color, gray);
+        g.setComposite(AlphaComposite.SrcOver.derive(.56f));
+        g.drawImage(gray, 0, 0, null);
     }
 
     protected void paintCard(Graphics2D g, int width, int height)
