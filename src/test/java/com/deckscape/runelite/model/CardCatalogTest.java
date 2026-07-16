@@ -37,6 +37,18 @@ class CardCatalogTest
             CardCatalog.selectedArtResource("man", "man:alternate", null));
         assertEquals("/com/deckscape/runelite/cards/man.png",
             CardCatalog.selectedArtResource("man", "", null));
+        assertEquals("/com/deckscape/runelite/cards/excalibur_phatraccoon.png",
+            CardCatalog.selectedArtResource("excalibur", "excalibur:phatraccoon", null));
+        assertEquals("/com/deckscape/runelite/cards/excalibur.png",
+            CardCatalog.selectedArtResource("excalibur", "", null));
+        assertEquals("/com/deckscape/runelite/cards/eye_of_ayak_generikwaffles.png",
+            CardCatalog.selectedArtResource("eye_of_ayak", "eye_of_ayak:generikwaffles", null));
+        assertEquals("/com/deckscape/runelite/cards/eye_of_ayak.png",
+            CardCatalog.selectedArtResource("eye_of_ayak", "", null));
+        assertEquals("/com/deckscape/runelite/cards/tormented_demon_cruk.png",
+            CardCatalog.selectedArtResource("tormented_demon", "tormented_demon:cruk", null));
+        assertEquals("/com/deckscape/runelite/cards/tormented_demon.png",
+            CardCatalog.selectedArtResource("tormented_demon", "", null));
     }
 
     @Test

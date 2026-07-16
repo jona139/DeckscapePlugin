@@ -137,6 +137,15 @@ public final class CardCatalog
                 ? "archmage_sedridor_arcane.png" : "archmage_sedridor.png");
         if ("man".equals(cardId))
             return ART + ("man:alternate".equals(variantId) ? "man_alternate.png" : "man.png");
+        if ("excalibur".equals(cardId))
+            return ART + ("excalibur:phatraccoon".equals(variantId)
+                ? "excalibur_phatraccoon.png" : "excalibur.png");
+        if ("eye_of_ayak".equals(cardId))
+            return ART + ("eye_of_ayak:generikwaffles".equals(variantId)
+                ? "eye_of_ayak_generikwaffles.png" : "eye_of_ayak.png");
+        if ("tormented_demon".equals(cardId))
+            return ART + ("tormented_demon:cruk".equals(variantId)
+                ? "tormented_demon_cruk.png" : "tormented_demon.png");
         return fallback;
     }
 
