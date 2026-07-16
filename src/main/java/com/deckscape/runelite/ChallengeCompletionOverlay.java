@@ -105,21 +105,41 @@ public final class ChallengeCompletionOverlay extends Overlay
                     artSize - RewardPopupLayout.scale(4), artSize - RewardPopupLayout.scale(4), null);
             }
             int textX = x + RewardPopupLayout.scale(7) + artSize + RewardPopupLayout.scale(6);
-            g.setColor(new Color(184, 151, 73));
-            g.setFont(new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(6)));
-            g.drawString("CHALLENGE COMPLETE", textX, y + RewardPopupLayout.scale(14));
-            g.setColor(DeckscapePalette.GOLD);
-            g.setFont(new Font("Serif", Font.BOLD, RewardPopupLayout.scale(9)));
-            g.drawString(title, textX, y + RewardPopupLayout.scale(29));
-            g.setColor(DeckscapePalette.PARCHMENT);
-            g.setFont(new Font("SansSerif", Font.PLAIN, RewardPopupLayout.scale(6)));
-            g.drawString(reward, textX, y + RewardPopupLayout.scale(41));
-            g.setColor(new Color(164, 145, 103));
-            g.setFont(new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(6)));
-            g.drawString("Saved to Deckscape", textX, y + RewardPopupLayout.scale(52));
+            int textWidth = x + width - textX - RewardPopupLayout.scale(6);
+            g.setColor(new Color(10, 8, 5, 150));
+            g.fillRoundRect(textX - RewardPopupLayout.scale(3), y + RewardPopupLayout.scale(6),
+                textWidth + RewardPopupLayout.scale(3), RewardPopupLayout.scale(48),
+                RewardPopupLayout.scale(4), RewardPopupLayout.scale(4));
+            drawText(g, "CHALLENGE COMPLETE", textX, y + RewardPopupLayout.scale(15),
+                new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(7)), new Color(255, 231, 151));
+            drawFittedText(g, title, textX, y + RewardPopupLayout.scale(29), textWidth,
+                new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(9)), Color.WHITE);
+            drawFittedText(g, reward, textX, y + RewardPopupLayout.scale(41), textWidth,
+                new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(6)), new Color(235, 220, 184));
+            drawText(g, "Saved to Deckscape", textX, y + RewardPopupLayout.scale(52),
+                new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(6)), new Color(210, 190, 145));
         }
         finally { g.dispose(); }
         return null;
+    }
+
+    private static void drawFittedText(Graphics2D graphics, String text, int x, int baseline,
+                                       int maximumWidth, Font preferred, Color color)
+    {
+        Font font = preferred;
+        while (font.getSize() > RewardPopupLayout.scale(6)
+            && graphics.getFontMetrics(font).stringWidth(text) > maximumWidth)
+            font = font.deriveFont((float) font.getSize() - 1f);
+        drawText(graphics, text, x, baseline, font, color);
+    }
+
+    private static void drawText(Graphics2D graphics, String text, int x, int baseline, Font font, Color color)
+    {
+        graphics.setFont(font);
+        graphics.setColor(new Color(0, 0, 0, 230));
+        graphics.drawString(text, x + 1, baseline + 1);
+        graphics.setColor(color);
+        graphics.drawString(text, x, baseline);
     }
 
     private static float ease(float value)

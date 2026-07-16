@@ -2,6 +2,7 @@ package com.deckscape.runelite.ui;
 
 import com.deckscape.runelite.DeckscapeConfig;
 import com.deckscape.runelite.DeckscapeStore;
+import com.deckscape.runelite.model.CardCatalog;
 import com.deckscape.runelite.model.DeckscapeState;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -280,11 +281,13 @@ public final class DeckscapePanel extends PluginPanel
             codeField.setText(state.getPairingCode().isEmpty() ? "CREATING…" : state.getPairingCode());
             pairingBox.setVisible(config.dataSharingConsent() && !state.isLinked());
             int packs = state.getPacks().values().stream().mapToInt(Integer::intValue).sum();
-            int cards = state.getCollection().values().stream().mapToInt(Integer::intValue).sum();
+            long uniqueCards = CardCatalog.all().stream()
+                .filter(card -> state.getCollection().getOrDefault(card.getId(), 0) > 0)
+                .count();
             coinsLabel.setText(String.valueOf(state.getCoins()));
             stardustLabel.setText(String.valueOf(state.getStardust()));
             packsLabel.setText(String.valueOf(packs));
-            cardsLabel.setText(String.valueOf(cards));
+            cardsLabel.setText(uniqueCards + " / " + CardCatalog.all().size());
             claimedLabel.setText(state.getCompletedChallenges().size() + " challenges claimed");
             if (dialog != null && dialog.isVisible()) dialog.refreshData();
             revalidate();
