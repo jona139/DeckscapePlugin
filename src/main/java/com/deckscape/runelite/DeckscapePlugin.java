@@ -21,8 +21,10 @@ import java.awt.image.BufferedImage;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -32,6 +34,7 @@ import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Skill;
 import net.runelite.api.WorldType;
 import net.runelite.api.events.GameStateChanged;
@@ -44,7 +47,6 @@ import net.runelite.api.events.ChatMessage;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.Notifier;
 import net.runelite.client.chat.ChatCommandManager;
-import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -84,7 +86,6 @@ public final class DeckscapePlugin extends Plugin
     @Inject private GoldenFrameChallengeTracker goldenFrameChallengeTracker;
     @Inject private Notifier notifier;
     @Inject private ChatCommandManager chatCommandManager;
-    @Inject private ChatMessageManager chatMessageManager;
     @Inject private DeckscapeSyncClient syncClient;
     @Inject private OkHttpClient httpClient;
     @Inject private ScheduledExecutorService executor;
@@ -104,6 +105,11 @@ public final class DeckscapePlugin extends Plugin
     protected void startUp()
     {
         DeckscapeState state = store.load();
+        if (!state.isLinked())
+        {
+            state.clearCachedAccountData();
+            store.save();
+        }
         DeckscapeImages.configureRemoteArt(httpClient, config::dataSharingConsent, this::repaintDeckscapeArt);
         chatCommandManager.registerCommand("!deckscape", this::showDeckscapeCollectionSummary);
         panel.setHandlers(this::openPack, this::manualSync, this::beginPairing, client::playSoundEffect);
@@ -209,10 +215,18 @@ public final class DeckscapePlugin extends Plugin
     private void showDeckscapeCollectionSummary(ChatMessage event, String message)
     {
         if (event.getMessageNode() == null || client.getLocalPlayer() == null) return;
-        String sender = Text.removeTags(event.getName() == null ? "" : event.getName());
-        if (!sender.equalsIgnoreCase(client.getLocalPlayer().getName())) return;
+        String localName = client.getLocalPlayer().getName();
+        if (!isLocalCommandSender(event.getType(), event.getName(), localName)) return;
         event.getMessageNode().setRuneLiteFormatMessage(CollectionRaritySummary.build(store.load()));
-        chatMessageManager.update(event.getMessageNode());
+        client.refreshChat();
+    }
+
+    static boolean isLocalCommandSender(ChatMessageType type, String sender, String localName)
+    {
+        if (localName == null || localName.isEmpty()) return false;
+        String player = type == ChatMessageType.PRIVATECHATOUT ? localName
+            : Text.sanitize(sender == null ? "" : sender);
+        return localName.equalsIgnoreCase(player);
     }
 
     private void maintainSync()
@@ -447,6 +461,9 @@ public final class DeckscapePlugin extends Plugin
             notifier.notify("Link Deckscape to your website account before opening packs.");
             return;
         }
+        Set<String> ownedBeforeOpening = new HashSet<>();
+        for (Map.Entry<String, Integer> entry : state.getCollection().entrySet())
+            if (entry.getValue() != null && entry.getValue() > 0) ownedBeforeOpening.add(entry.getKey());
         panel.hideDialog();
         JsonObject payload = new JsonObject();
         payload.addProperty("type", type.name());
@@ -468,7 +485,7 @@ public final class DeckscapePlugin extends Plugin
                 store.save();
                 panel.refresh();
                 int stardustAward = response.has("stardustAward") ? response.get("stardustAward").getAsInt() : 0;
-                if (revealed.size() == 5) packRevealOverlay.showPack(type, revealed, stardustAward);
+                if (revealed.size() == 5) packRevealOverlay.showPack(type, revealed, stardustAward, ownedBeforeOpening);
                 else notifier.notify("The pack opened, but this plugin version could not display every card. Your collection is safe and synchronized.");
             }))
             .exceptionally(error -> {

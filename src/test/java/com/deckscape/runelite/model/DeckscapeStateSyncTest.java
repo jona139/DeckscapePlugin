@@ -19,6 +19,19 @@ class DeckscapeStateSyncTest
     }
 
     @Test
+    void unlinkedCacheStartsWithNoPacksUntilServerPairingSnapshotArrives()
+    {
+        DeckscapeState state = new DeckscapeState();
+        state.addPack(PackType.GENERAL);
+        state.addPack(PackType.COMBAT);
+        state.addPack(PackType.SKILLING);
+
+        state.clearCachedAccountData();
+
+        assertEquals(0, state.getPacks().values().stream().mapToInt(Integer::intValue).sum());
+    }
+
+    @Test
     void revokedLinkClearsLocalAccountAndAllowsPairingAgain()
     {
         DeckscapeState state = new DeckscapeState();

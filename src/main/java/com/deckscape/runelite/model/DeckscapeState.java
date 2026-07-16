@@ -63,6 +63,11 @@ public final class DeckscapeState
     {
         deviceToken = null;
         clearPairingSession();
+        clearCachedAccountData();
+    }
+
+    public void clearCachedAccountData()
+    {
         collection.clear();
         for (PackType type : PackType.values()) packs.put(type, 0);
         completedChallenges.clear();

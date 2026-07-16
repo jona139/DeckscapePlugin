@@ -17,6 +17,7 @@ import java.awt.RenderingHints;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
@@ -49,6 +50,7 @@ public final class PackRevealOverlay extends Overlay
     private long startedAt = -1L;
     private long claimedAt = -1L;
     private long[] flipStartedAt = new long[0];
+    private boolean[] newCards = new boolean[0];
 
     // Hit targets from the last rendered frame, read by the mouse listener.
     private Rectangle[] cardBounds = new Rectangle[0];
@@ -72,12 +74,18 @@ public final class PackRevealOverlay extends Overlay
 
     public synchronized void showPack(PackType type, List<DeckscapeCard> revealed, int stardustAward)
     {
+        showPack(type, revealed, stardustAward, null);
+    }
+
+    public synchronized void showPack(PackType type, List<DeckscapeCard> revealed, int stardustAward, Set<String> ownedBeforeOpening)
+    {
         this.packType = type == null ? PackType.GENERAL : type;
         this.cards = revealed == null ? Collections.emptyList() : new ArrayList<>(revealed);
         this.stardustAward = Math.max(0, stardustAward);
         this.startedAt = System.currentTimeMillis();
         this.claimedAt = -1L;
         this.flipStartedAt = new long[cards.size()];
+        this.newCards = newCardFlags(cards, ownedBeforeOpening);
         java.util.Arrays.fill(flipStartedAt, -1L);
         this.cardBounds = new Rectangle[cards.size()];
         this.claimBounds = null;
@@ -236,6 +244,7 @@ public final class PackRevealOverlay extends Overlay
                 cardGraphics.setColor(new Color(rarity.getRed(), rarity.getGreen(), rarity.getBlue(), Math.round(255 * pulse)));
                 cardGraphics.fillRoundRect(-7, -7, bounds.width + 14, bounds.height + 14, 18, 18);
                 CardPainter.paintFace(cardGraphics, 0, 0, bounds.width, bounds.height, card, -1);
+                if (newCards[i]) drawNewBadge(cardGraphics, bounds.width);
             }
             else
             {
@@ -250,6 +259,34 @@ public final class PackRevealOverlay extends Overlay
             }
             cardGraphics.dispose();
         }
+    }
+
+    static boolean[] newCardFlags(List<DeckscapeCard> revealed, Set<String> ownedBeforeOpening)
+    {
+        int size = revealed == null ? 0 : revealed.size();
+        boolean[] result = new boolean[size];
+        if (ownedBeforeOpening == null) return result;
+        for (int i = 0; i < size; i++)
+            result[i] = !ownedBeforeOpening.contains(revealed.get(i).getId());
+        return result;
+    }
+
+    private static void drawNewBadge(Graphics2D g, int cardWidth)
+    {
+        String text = "NEW!";
+        Font font = new Font("SansSerif", Font.BOLD, Math.max(9, cardWidth / 12));
+        g.setFont(font);
+        FontMetrics metrics = g.getFontMetrics();
+        int width = metrics.stringWidth(text) + 10;
+        int height = metrics.getHeight() + 2;
+        int x = cardWidth - width - 4;
+        int y = 4;
+        g.setColor(new Color(19, 12, 4, 225));
+        g.fillRoundRect(x - 2, y - 2, width + 4, height + 4, 9, 9);
+        g.setColor(new Color(255, 210, 74));
+        g.fillRoundRect(x, y, width, height, 7, 7);
+        g.setColor(new Color(56, 35, 7));
+        g.drawString(text, x + 5, y + metrics.getAscent() + 1);
     }
 
     private void drawFooter(Graphics2D g, int canvasWidth, int canvasHeight, long elapsed, long now)
