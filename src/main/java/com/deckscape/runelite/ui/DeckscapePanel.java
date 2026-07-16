@@ -9,8 +9,10 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
+import java.awt.image.BufferedImage;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.inject.Inject;
@@ -19,6 +21,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -38,7 +41,12 @@ public final class DeckscapePanel extends PluginPanel
     private java.util.function.Consumer<Integer> soundPlayer;
     private final JLabel statusLabel = new JLabel();
     private final JLabel syncDetail = new JLabel();
-    private final JLabel statsLabel = new JLabel();
+    private final JLabel coinsLabel = walletValueLabel();
+    private final JLabel stardustLabel = walletValueLabel();
+    private final JLabel packsLabel = walletValueLabel();
+    private final JLabel cardsLabel = walletValueLabel();
+    private final JLabel claimedLabel = new JLabel();
+    private final JButton syncNowButton = new JButton("Sync now");
     private final JTextField codeField = new JTextField();
     private final JPanel pairingBox = new JPanel();
 
@@ -81,6 +89,13 @@ public final class DeckscapePanel extends PluginPanel
         statusCard.add(statusLabel);
         statusCard.add(Box.createRigidArea(new Dimension(0, 4)));
         statusCard.add(syncDetail);
+        statusCard.add(Box.createRigidArea(new Dimension(0, 9)));
+        styleSmallButton(syncNowButton);
+        syncNowButton.setToolTipText("Push queued progress and refresh your Deckscape account now");
+        syncNowButton.setAlignmentX(LEFT_ALIGNMENT);
+        syncNowButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        syncNowButton.addActionListener(event -> { if (syncAction != null) syncAction.run(); });
+        statusCard.add(syncNowButton);
         body.add(statusCard);
         body.add(Box.createRigidArea(new Dimension(0, 10)));
 
@@ -128,16 +143,21 @@ public final class DeckscapePanel extends PluginPanel
         body.add(Box.createRigidArea(new Dimension(0, 10)));
 
         JPanel summary = card();
-        JLabel summaryTitle = new JLabel("SHARED PROGRESS");
+        JLabel summaryTitle = new JLabel("WALLET");
         summaryTitle.setForeground(new Color(168, 143, 91));
         summaryTitle.setFont(new Font("SansSerif", Font.BOLD, 11));
         summaryTitle.setAlignmentX(LEFT_ALIGNMENT);
-        statsLabel.setForeground(DeckscapePalette.PARCHMENT);
-        statsLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        statsLabel.setAlignmentX(LEFT_ALIGNMENT);
         summary.add(summaryTitle);
         summary.add(Box.createRigidArea(new Dimension(0, 7)));
-        summary.add(statsLabel);
+        summary.add(walletRow("/com/deckscape/runelite/ui/wallet_coins.png", "Coins", coinsLabel));
+        summary.add(walletRow("/com/deckscape/runelite/ui/wallet_stardust.png", "Stardust", stardustLabel));
+        summary.add(walletRow("/com/deckscape/runelite/ui/wallet_packs.png", "Packs", packsLabel));
+        summary.add(walletRow("/com/deckscape/runelite/ui/wallet_cards.png", "Cards", cardsLabel));
+        claimedLabel.setForeground(DeckscapePalette.MUTED);
+        claimedLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        claimedLabel.setAlignmentX(LEFT_ALIGNMENT);
+        summary.add(Box.createRigidArea(new Dimension(0, 4)));
+        summary.add(claimedLabel);
         body.add(summary);
         body.add(Box.createRigidArea(new Dimension(0, 14)));
 
@@ -179,12 +199,44 @@ public final class DeckscapePanel extends PluginPanel
     private JButton smallButton(String text)
     {
         JButton button = new JButton(text);
+        styleSmallButton(button);
+        return button;
+    }
+
+    private void styleSmallButton(JButton button)
+    {
         button.setFocusPainted(false);
         button.setForeground(DeckscapePalette.PARCHMENT);
         button.setBackground(new Color(55, 47, 34));
         button.setFont(new Font("SansSerif", Font.BOLD, 12));
         button.setBorder(BorderFactory.createLineBorder(new Color(119, 94, 48)));
-        return button;
+    }
+
+    private JPanel walletRow(String resource, String name, JLabel value)
+    {
+        JPanel row = new JPanel(new BorderLayout(9, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        BufferedImage image = DeckscapeImages.load(resource);
+        JLabel icon = new JLabel(image == null ? null
+            : new ImageIcon(image.getScaledInstance(28, 28, Image.SCALE_SMOOTH)));
+        icon.setPreferredSize(new Dimension(30, 34));
+        JLabel nameLabel = new JLabel(name);
+        nameLabel.setForeground(DeckscapePalette.PARCHMENT);
+        nameLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        row.add(icon, BorderLayout.WEST);
+        row.add(nameLabel, BorderLayout.CENTER);
+        row.add(value, BorderLayout.EAST);
+        return row;
+    }
+
+    private static JLabel walletValueLabel()
+    {
+        JLabel label = new JLabel("0", SwingConstants.RIGHT);
+        label.setForeground(DeckscapePalette.GOLD);
+        label.setFont(new Font("SansSerif", Font.BOLD, 15));
+        return label;
     }
 
     private void showDialog(DeckscapeDialog.Tab tab)
@@ -224,15 +276,16 @@ public final class DeckscapePanel extends PluginPanel
                 : state.getLastSyncAt() <= 0 ? "Not synchronized yet" : "Last sync " + new SimpleDateFormat("HH:mm:ss").format(new Date(state.getLastSyncAt()));
             if (!state.getPendingEvents().isEmpty()) lastSync += " · " + state.getPendingEvents().size() + " queued";
             syncDetail.setText(lastSync);
+            syncNowButton.setEnabled(config.dataSharingConsent() && state.isLinked());
             codeField.setText(state.getPairingCode().isEmpty() ? "CREATING…" : state.getPairingCode());
             pairingBox.setVisible(config.dataSharingConsent() && !state.isLinked());
             int packs = state.getPacks().values().stream().mapToInt(Integer::intValue).sum();
             int cards = state.getCollection().values().stream().mapToInt(Integer::intValue).sum();
-            statsLabel.setText("<html><span style='color:#ffe18a'>" + state.getCoins() + "</span> Coins &nbsp;·&nbsp; "
-                + "<span style='color:#ffe18a'>" + state.getStardust() + "</span> Stardust<br>"
-                + "<span style='color:#ffe18a'>" + packs + "</span> packs &nbsp;·&nbsp; "
-                + "<span style='color:#ffe18a'>" + cards + "</span> cards &nbsp;·&nbsp; "
-                + "<span style='color:#ffe18a'>" + state.getCompletedChallenges().size() + "</span> claimed</html>");
+            coinsLabel.setText(String.valueOf(state.getCoins()));
+            stardustLabel.setText(String.valueOf(state.getStardust()));
+            packsLabel.setText(String.valueOf(packs));
+            cardsLabel.setText(String.valueOf(cards));
+            claimedLabel.setText(state.getCompletedChallenges().size() + " challenges claimed");
             if (dialog != null && dialog.isVisible()) dialog.refreshData();
             revalidate();
             repaint();

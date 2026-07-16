@@ -11,6 +11,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DeckscapeStateSyncTest
 {
     @Test
+    void usesTemporaryTestingRewardIntervalByDefault()
+    {
+        assertEquals(250, new DeckscapeState().getXpRewardInterval());
+    }
+
+    @Test
+    void batchesPassiveXpWithoutExceedingTheApiLimit()
+    {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("xp", 99_900);
+        PendingSyncEvent event = new PendingSyncEvent("runelite_xp", "xp-event", payload);
+
+        assertEquals(100, event.appendXp(500, 100_000));
+        assertEquals(100_000, event.getPayload().get("xp").getAsInt());
+        assertEquals(0, event.appendXp(400, 100_000));
+    }
+
+    @Test
     void pairingSessionAndOutboxSurviveCacheRestart()
     {
         DeckscapeState state = new DeckscapeState();

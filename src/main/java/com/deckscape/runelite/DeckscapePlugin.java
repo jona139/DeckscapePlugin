@@ -64,11 +64,12 @@ import okhttp3.OkHttpClient;
 )
 public final class DeckscapePlugin extends Plugin
 {
-    private static final long SYNC_INTERVAL_MS = 30_000L;
+    private static final long BACKGROUND_SYNC_INTERVAL_MS = TimeUnit.MINUTES.toMillis(5);
     private final Map<Skill, Integer> previousXp = new EnumMap<>(Skill.class);
     private final AtomicBoolean pairingInFlight = new AtomicBoolean();
     private final AtomicBoolean syncInFlight = new AtomicBoolean();
     private final AtomicBoolean eventInFlight = new AtomicBoolean();
+    private volatile long lastSyncAttemptAt;
 
     @Inject private net.runelite.api.Client client;
     @Inject private DeckscapeConfig config;
@@ -105,7 +106,7 @@ public final class DeckscapePlugin extends Plugin
         DeckscapeState state = store.load();
         DeckscapeImages.configureRemoteArt(httpClient, config::dataSharingConsent, this::repaintDeckscapeArt);
         chatCommandManager.registerCommand("!deckscape", this::showDeckscapeCollectionSummary);
-        panel.setHandlers(this::openPack, this::syncWithServer, this::beginPairing, client::playSoundEffect);
+        panel.setHandlers(this::openPack, this::manualSync, this::beginPairing, client::playSoundEffect);
         elementalStrikeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
         goldenFrameChallengeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
         overlayManager.add(completionOverlay);
@@ -122,8 +123,7 @@ public final class DeckscapePlugin extends Plugin
         }
         else if (state.isLinked())
         {
-            syncWithServer();
-            flushPendingEvents();
+            backgroundSyncIfDue(state);
         }
         else
         {
@@ -160,8 +160,7 @@ public final class DeckscapePlugin extends Plugin
         }
         else if (event.getGameState() == GameState.LOGGED_IN && config.dataSharingConsent())
         {
-            syncWithServer();
-            flushPendingEvents();
+            backgroundSyncIfDue(store.load());
         }
     }
 
@@ -228,13 +227,20 @@ public final class DeckscapePlugin extends Plugin
                 else pollPairing();
                 return;
             }
-            flushPendingEvents();
-            if (System.currentTimeMillis() - state.getLastSyncAt() >= SYNC_INTERVAL_MS) syncWithServer();
+            backgroundSyncIfDue(state);
         }
         catch (RuntimeException error)
         {
             log.debug("Deckscape background sync maintenance failed", error);
         }
+    }
+
+    private void backgroundSyncIfDue(DeckscapeState state)
+    {
+        long lastContact = Math.max(state.getLastSyncAt(), lastSyncAttemptAt);
+        if (System.currentTimeMillis() - lastContact < BACKGROUND_SYNC_INTERVAL_MS) return;
+        if (state.getPendingEvents().isEmpty()) syncWithServer();
+        else flushPendingEvents();
     }
 
     private void beginPairing()
@@ -293,6 +299,12 @@ public final class DeckscapePlugin extends Plugin
         {
             while (remaining > 0)
             {
+                if (!eventInFlight.get() && !state.getPendingEvents().isEmpty())
+                {
+                    PendingSyncEvent tail = state.getPendingEvents().get(state.getPendingEvents().size() - 1);
+                    remaining -= tail.appendXp(remaining, 100_000);
+                    if (remaining <= 0) break;
+                }
                 int amount = Math.min(100_000, remaining);
                 JsonObject payload = new JsonObject();
                 payload.addProperty("xp", amount);
@@ -303,7 +315,6 @@ public final class DeckscapePlugin extends Plugin
             }
             store.save();
         }
-        flushPendingEvents();
         panel.refresh();
     }
 
@@ -324,7 +335,7 @@ public final class DeckscapePlugin extends Plugin
             state.getPendingEvents().add(new PendingSyncEvent("runelite_challenge", event.getEventId(), payload));
             store.save();
         }
-        flushPendingEvents();
+        panel.refresh();
     }
 
     private void flushPendingEvents()
@@ -337,6 +348,7 @@ public final class DeckscapePlugin extends Plugin
             if (state.getPendingEvents().isEmpty()) { eventInFlight.set(false); return; }
             item = state.getPendingEvents().get(0);
         }
+        lastSyncAttemptAt = System.currentTimeMillis();
         syncClient.request(state.getDeviceToken(), item.getAction(), item.getPayload())
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
@@ -435,6 +447,7 @@ public final class DeckscapePlugin extends Plugin
         panel.hideDialog();
         JsonObject payload = new JsonObject();
         payload.addProperty("type", type.name());
+        lastSyncAttemptAt = System.currentTimeMillis();
         syncClient.request(state.getDeviceToken(), "open_pack", payload)
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 List<DeckscapeCard> revealed = new ArrayList<>();
@@ -462,6 +475,7 @@ public final class DeckscapePlugin extends Plugin
     {
         DeckscapeState state = store.load();
         if (!config.dataSharingConsent() || !state.isLinked() || !syncInFlight.compareAndSet(false, true)) return;
+        lastSyncAttemptAt = System.currentTimeMillis();
         syncClient.request(state.getDeviceToken(), "get_state", null)
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
@@ -475,6 +489,14 @@ public final class DeckscapePlugin extends Plugin
                 finally { syncInFlight.set(false); }
             }))
             .exceptionally(error -> { syncInFlight.set(false); log.warn("Deckscape sync failed", error); return null; });
+    }
+
+    private void manualSync()
+    {
+        DeckscapeState state = store.load();
+        if (!config.dataSharingConsent() || !state.isLinked()) return;
+        if (state.getPendingEvents().isEmpty()) syncWithServer();
+        else flushPendingEvents();
     }
 
     private void updateLocalState(DeckscapeState state, JsonObject serverState)
