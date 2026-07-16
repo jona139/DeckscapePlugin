@@ -78,11 +78,11 @@ public final class DeckscapeImages
     /** Uses bundled art immediately and schedules a consent-gated HTTPS fallback when it is absent. */
     public static BufferedImage loadCardArt(DeckscapeCard card)
     {
-        // Mirror the website's cardArtSources order: current id, explicit legacy
-        // resource, known local substitute, then the remote catalog URL.
-        BufferedImage bundled = loadOptional(cardResource(card.getId(), ".png"));
+        // Explicit resources include the account's selected cosmetic variant and
+        // therefore take precedence over the card-id default.
+        BufferedImage bundled = loadOptional(card.getArtResource());
+        if (bundled == null) bundled = loadOptional(cardResource(card.getId(), ".png"));
         if (bundled == null) bundled = loadOptional(cardResource(card.getId(), ".gif"));
-        if (bundled == null) bundled = loadOptional(card.getArtResource());
         String fallbackId = LOCAL_FALLBACK_ID.get(card.getId());
         if (bundled == null && fallbackId != null) bundled = loadOptional(cardResource(fallbackId, ".png"));
         if (bundled != null) return bundled;

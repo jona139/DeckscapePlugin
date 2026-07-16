@@ -395,6 +395,7 @@ public final class DeckscapePlugin extends Plugin
         {
             eventInFlight.set(false);
             log.warn("Deckscape event retained for retry: " + item.getEventId(), error);
+            panel.refresh();
             return;
         }
 
@@ -424,6 +425,8 @@ public final class DeckscapePlugin extends Plugin
         }
         int coins = response.has("coinsAwarded") ? response.get("coinsAwarded").getAsInt() : 0;
         int stardust = response.has("stardustAwarded") ? response.get("stardustAwarded").getAsInt() : 0;
+        packRewardOverlay.showCoins(coins);
+        packRewardOverlay.showStardust(stardust);
         List<String> rewards = new ArrayList<>();
         if (awarded.size() > 0) rewards.add(awarded.size() + " pack" + (awarded.size() == 1 ? "" : "s"));
         if (coins > 0) rewards.add(coins + " Coins");
@@ -488,7 +491,12 @@ public final class DeckscapePlugin extends Plugin
                 }
                 finally { syncInFlight.set(false); }
             }))
-            .exceptionally(error -> { syncInFlight.set(false); log.warn("Deckscape sync failed", error); return null; });
+            .exceptionally(error -> {
+                syncInFlight.set(false);
+                log.warn("Deckscape sync failed", error);
+                panel.refresh();
+                return null;
+            });
     }
 
     private void manualSync()
@@ -504,7 +512,17 @@ public final class DeckscapePlugin extends Plugin
         if (serverState.has("coins")) state.setCoins(serverState.get("coins").getAsInt());
         if (serverState.has("stardust")) state.setStardust(serverState.get("stardust").getAsInt());
         if (serverState.has("goldenNuggets")) state.setGoldenNuggets(serverState.get("goldenNuggets").getAsInt());
-        if (serverState.has("catalog")) CardCatalog.replaceFromServer(serverState.getAsJsonArray("catalog"));
+        if (serverState.has("catalog"))
+        {
+            JsonObject selectedCardArts = null;
+            if (serverState.has("profile") && serverState.get("profile").isJsonObject())
+            {
+                JsonObject profile = serverState.getAsJsonObject("profile");
+                if (profile.has("selectedCardArts") && profile.get("selectedCardArts").isJsonObject())
+                    selectedCardArts = profile.getAsJsonObject("selectedCardArts");
+            }
+            CardCatalog.replaceFromServer(serverState.getAsJsonArray("catalog"), selectedCardArts);
+        }
         if (serverState.has("packs"))
         {
             JsonObject packs = serverState.getAsJsonObject("packs");

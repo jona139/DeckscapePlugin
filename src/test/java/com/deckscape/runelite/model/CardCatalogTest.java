@@ -27,6 +27,19 @@ class CardCatalogTest
     }
 
     @Test
+    void resolvesWebsiteArtworkSelectionsToBundledPluginArt()
+    {
+        assertEquals("/com/deckscape/runelite/cards/archmage_sedridor_arcane.png",
+            CardCatalog.selectedArtResource("archmage_sedridor", "archmage_sedridor:arcane", null));
+        assertEquals("/com/deckscape/runelite/cards/archmage_sedridor.png",
+            CardCatalog.selectedArtResource("archmage_sedridor", "", null));
+        assertEquals("/com/deckscape/runelite/cards/man_alternate.png",
+            CardCatalog.selectedArtResource("man", "man:alternate", null));
+        assertEquals("/com/deckscape/runelite/cards/man.png",
+            CardCatalog.selectedArtResource("man", "", null));
+    }
+
+    @Test
     void everyPackContainsFiveEligibleCards()
     {
         Random random = new Random(42);

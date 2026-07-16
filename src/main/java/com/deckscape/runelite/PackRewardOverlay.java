@@ -35,8 +35,8 @@ public final class PackRewardOverlay extends Overlay
 
     private final Client client;
     private final DeckscapeConfig config;
-    private final Deque<PackType> queue = new ArrayDeque<>();
-    private PackType active;
+    private final Deque<Reward> queue = new ArrayDeque<>();
+    private Reward active;
     private long startedAt;
     private BufferedImage packIcon;
 
@@ -52,7 +52,23 @@ public final class PackRewardOverlay extends Overlay
 
     public synchronized void showPack(PackType type)
     {
-        queue.addLast(type);
+        queue.addLast(Reward.pack(type));
+        if (active == null) advance();
+    }
+
+    public synchronized void showCoins(int amount)
+    {
+        if (amount <= 0) return;
+        queue.addLast(new Reward("COINS FOUND!", "+" + amount + " Coins", "Added to your wallet",
+            "/com/deckscape/runelite/ui/wallet_coins.png", null));
+        if (active == null) advance();
+    }
+
+    public synchronized void showStardust(int amount)
+    {
+        if (amount <= 0) return;
+        queue.addLast(new Reward("STARDUST FOUND!", "+" + amount + " Stardust", "Added to your wallet",
+            "/com/deckscape/runelite/ui/wallet_stardust.png", null));
         if (active == null) advance();
     }
 
@@ -60,8 +76,11 @@ public final class PackRewardOverlay extends Overlay
     {
         active = queue.pollFirst();
         startedAt = active == null ? 0L : System.currentTimeMillis();
-        packIcon = active == null ? null : CardPainter.packImage(active,
+        if (active == null) packIcon = null;
+        else if (active.packType != null) packIcon = CardPainter.packImage(active.packType,
             RewardPopupLayout.scale(22), RewardPopupLayout.scale(32));
+        else packIcon = fitIcon(DeckscapeImages.load(active.iconResource),
+            RewardPopupLayout.scale(32), RewardPopupLayout.scale(32));
     }
 
     @Override
@@ -104,19 +123,67 @@ public final class PackRewardOverlay extends Overlay
         }
         int textX = x + RewardPopupLayout.scale(7)
             + (packIcon == null ? 0 : packIcon.getWidth() + RewardPopupLayout.scale(5));
-        drawText(graphics, "Pack unlocked!", textX, y + RewardPopupLayout.scale(19),
-            new Font("Serif", Font.BOLD, RewardPopupLayout.scale(10)), DeckscapePalette.GOLD);
-        drawText(graphics, "+1 " + active.getDisplayName(), textX, y + RewardPopupLayout.scale(34),
-            new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(8)), DeckscapePalette.PARCHMENT);
-        drawText(graphics, "Open in Deckscape", textX, y + RewardPopupLayout.scale(48),
-            new Font("SansSerif", Font.PLAIN, RewardPopupLayout.scale(7)), DeckscapePalette.MUTED);
+        graphics.setColor(new Color(10, 8, 5, 145));
+        graphics.fillRoundRect(textX - RewardPopupLayout.scale(3), y + RewardPopupLayout.scale(7),
+            x + width - textX - RewardPopupLayout.scale(6), RewardPopupLayout.scale(45),
+            RewardPopupLayout.scale(4), RewardPopupLayout.scale(4));
+        drawText(graphics, active.title, textX, y + RewardPopupLayout.scale(19),
+            new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(9)), new Color(255, 231, 151));
+        drawText(graphics, active.detail, textX, y + RewardPopupLayout.scale(34),
+            new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(8)), Color.WHITE);
+        drawText(graphics, active.footer, textX, y + RewardPopupLayout.scale(48),
+            new Font("SansSerif", Font.BOLD, RewardPopupLayout.scale(7)), new Color(235, 220, 184));
         graphics.setComposite(AlphaComposite.SrcOver);
         return null;
     }
 
     private static void drawText(Graphics2D g, String text, int x, int baseline, Font font, Color color)
     {
-        g.setFont(font); g.setColor(color); g.drawString(text, x, baseline);
+        g.setFont(font);
+        g.setColor(new Color(0, 0, 0, 230));
+        g.drawString(text, x + 1, baseline + 1);
+        g.setColor(color);
+        g.drawString(text, x, baseline);
+    }
+
+    private static BufferedImage fitIcon(BufferedImage source, int maximumWidth, int maximumHeight)
+    {
+        if (source == null) return null;
+        double scale = Math.min(maximumWidth / (double) source.getWidth(), maximumHeight / (double) source.getHeight());
+        int width = Math.max(1, (int) Math.round(source.getWidth() * scale));
+        int height = Math.max(1, (int) Math.round(source.getHeight() * scale));
+        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = result.createGraphics();
+        try
+        {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            graphics.drawImage(source, 0, 0, width, height, null);
+        }
+        finally { graphics.dispose(); }
+        return result;
+    }
+
+    private static final class Reward
+    {
+        private final String title;
+        private final String detail;
+        private final String footer;
+        private final String iconResource;
+        private final PackType packType;
+
+        private Reward(String title, String detail, String footer, String iconResource, PackType packType)
+        {
+            this.title = title;
+            this.detail = detail;
+            this.footer = footer;
+            this.iconResource = iconResource;
+            this.packType = packType;
+        }
+
+        private static Reward pack(PackType type)
+        {
+            return new Reward("PACK UNLOCKED!", "+1 " + type.getDisplayName(), "Open it in Deckscape", null, type);
+        }
     }
 
     private static float ease(float value)

@@ -58,7 +58,7 @@ public final class CardCatalog
         c("bind", "Bind", "Universal", COMMON, SPELL, MAGIC, 5, 0, "Deal 2 damage to an enemy and Bind it.", "bind.png"),
         c("enchant_jewellery", "Enchant Jewellery", "Universal", UNCOMMON, SPELL, MAGIC, 7, 0, "Increase every bracketed number on your next two Equipment cards by 1.", "enchant_jewellery.png"),
         c("ring_of_recoil", "Ring of Recoil", "Universal", UNCOMMON, EQUIPMENT, MAGIC, 6, 0, "When a shielded ally takes damage, deal 1 damage to a random enemy.", "ring_of_recoil.png"),
-        c("man", "Man", "Universal", COMMON, UNIT, MELEE, 4, 4, "Ability: Gain Smith 3.", "man_alternate.png"),
+        c("man", "Man", "Universal", COMMON, UNIT, MELEE, 4, 4, "Ability: Gain Smith 3.", "man.png"),
         c("woman", "Woman", "Universal", COMMON, UNIT, MELEE, 4, 4, "Ability: Gain Regen 2.", "woman.png"),
         c("magic_ball", "Magic Ball", "Misthalin", UNCOMMON, EQUIPMENT, MAGIC, 6, 0, "Generate one of each rune.", "magic_ball.png"),
         c("bread", "Bread", "Universal", COMMON, EQUIPMENT, MAGIC, 5, 0, "Restore an allied unit to full health.", "bread.png")
@@ -91,6 +91,12 @@ public final class CardCatalog
     /** Replaces bundled metadata with the server catalog so newly deployed cards appear immediately. */
     public static void replaceFromServer(JsonArray catalog)
     {
+        replaceFromServer(catalog, null);
+    }
+
+    /** Applies server metadata plus the account's globally selected cosmetic artwork. */
+    public static void replaceFromServer(JsonArray catalog, JsonObject selectedCardArts)
+    {
         List<DeckscapeCard> next = new ArrayList<>();
         for (JsonElement element : catalog)
         {
@@ -111,13 +117,27 @@ public final class CardCatalog
                     : bundled == null ? "" : bundled.getText();
                 String artUrl = row.has("artUrl") && !row.get("artUrl").isJsonNull() ? row.get("artUrl").getAsString()
                     : row.has("art") && !row.get("art").isJsonNull() ? row.get("art").getAsString() : null;
+                String selectedArt = selectedCardArts != null && selectedCardArts.has(id)
+                    && !selectedCardArts.get(id).isJsonNull() ? selectedCardArts.get(id).getAsString() : "";
+                String artResource = selectedArtResource(id, selectedArt,
+                    bundled == null ? null : bundled.getArtResource());
                 next.add(new DeckscapeCard(id, row.get("name").getAsString(), title(row.get("faction").getAsString()),
                     DeckscapeCard.Rarity.valueOf(row.get("rarity").getAsString()), kind, style, cost, power, text,
-                    bundled == null ? null : bundled.getArtResource(), artUrl));
+                    artResource, artUrl));
             }
             catch (RuntimeException ignored) { }
         }
         if (!next.isEmpty()) cards = Collections.unmodifiableList(next);
+    }
+
+    static String selectedArtResource(String cardId, String variantId, String fallback)
+    {
+        if ("archmage_sedridor".equals(cardId))
+            return ART + ("archmage_sedridor:arcane".equals(variantId)
+                ? "archmage_sedridor_arcane.png" : "archmage_sedridor.png");
+        if ("man".equals(cardId))
+            return ART + ("man:alternate".equals(variantId) ? "man_alternate.png" : "man.png");
+        return fallback;
     }
 
     private static String title(String value)

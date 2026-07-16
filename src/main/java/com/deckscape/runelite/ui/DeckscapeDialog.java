@@ -58,6 +58,7 @@ public final class DeckscapeDialog extends JFrame
     private JPanel collectionGrid;
     private JLabel collectionResultCount;
     private JLabel collectionTitle;
+    private JButton collectionSyncButton;
 
     private Tab activeTab = Tab.PACKS;
     private String collectionSearch = "";
@@ -136,6 +137,11 @@ public final class DeckscapeDialog extends JFrame
     /** Refresh synchronized data without replacing focused search/filter controls. */
     public void refreshData()
     {
+        if (collectionSyncButton != null)
+        {
+            collectionSyncButton.setEnabled(syncAction != null);
+            collectionSyncButton.setText(syncAction == null ? "Sync Offline" : "Sync Account");
+        }
         if (activeTab == Tab.COLLECTION && collectionGrid != null && collectionResultCount != null)
         {
             DeckscapeState state = store.load();
@@ -175,6 +181,7 @@ public final class DeckscapeDialog extends JFrame
         titleRow.add(collectionTitle, BorderLayout.WEST);
 
         JButton syncBtn = PackOpeningView.button("Sync Offline");
+        collectionSyncButton = syncBtn;
         if (syncAction != null)
         {
             syncBtn.setText("Sync Account");
