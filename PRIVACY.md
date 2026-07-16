@@ -5,7 +5,7 @@ Last updated: 15 July 2026
 Deckscape is an optional online service operated by the Deckscape plugin author and hosted on Supabase at
 `https://ahqakitttmbcpxdpdlkx.supabase.co/functions/v1/economy`.
 RuneLite remains usable without Deckscape, and this plugin sends nothing until the player explicitly enables
-**Share data with Deckscape** in the plugin settings.
+**Share data with Deckscape (third party)** in the plugin settings.
 
 ## Data processed
 

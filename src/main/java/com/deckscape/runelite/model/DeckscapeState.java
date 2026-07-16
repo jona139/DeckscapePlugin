@@ -15,16 +15,18 @@ public final class DeckscapeState
     private final Set<String> completedChallenges = new LinkedHashSet<>();
     private Map<String, Integer> challengeProgress = new LinkedHashMap<>();
     private Set<String> ownedGoldTrims = new LinkedHashSet<>();
+    private Set<String> selectedGoldTrims = new LinkedHashSet<>();
     private int coins;
     private int stardust;
     private int goldenNuggets;
-    private int xpRewardInterval = 250;
+    private int xpRewardInterval = 35000;
     private int xpTowardsPack;
     private String deviceToken;
     private String pairingCode;
     private String pendingDeviceToken;
     private long pairingExpiresAt;
     private long lastSyncAt;
+    private boolean welcomeShown;
     private List<PendingSyncEvent> pendingEvents = new ArrayList<>();
 
     public DeckscapeState()
@@ -64,16 +66,19 @@ public final class DeckscapeState
     public Set<String> getCompletedChallenges() { return completedChallenges; }
     public Map<String, Integer> getChallengeProgress() { if (challengeProgress == null) challengeProgress = new LinkedHashMap<>(); return challengeProgress; }
     public Set<String> getOwnedGoldTrims() { if (ownedGoldTrims == null) ownedGoldTrims = new LinkedHashSet<>(); return ownedGoldTrims; }
+    public Set<String> getSelectedGoldTrims() { if (selectedGoldTrims == null) selectedGoldTrims = new LinkedHashSet<>(); return selectedGoldTrims; }
     public int getCoins() { return coins; }
     public void setCoins(int coins) { this.coins = Math.max(0, coins); }
     public int getStardust() { return stardust; }
     public void setStardust(int stardust) { this.stardust = Math.max(0, stardust); }
     public int getGoldenNuggets() { return goldenNuggets; }
     public void setGoldenNuggets(int goldenNuggets) { this.goldenNuggets = Math.max(0, goldenNuggets); }
-    public int getXpRewardInterval() { return xpRewardInterval <= 0 ? 250 : xpRewardInterval; }
+    public int getXpRewardInterval() { return xpRewardInterval <= 0 ? 35000 : xpRewardInterval; }
     public void setXpRewardInterval(int xpRewardInterval) { this.xpRewardInterval = Math.max(1, xpRewardInterval); }
     public int getXpTowardsPack() { return xpTowardsPack; }
     public void setXpTowardsPack(int xpTowardsPack) { this.xpTowardsPack = Math.max(0, xpTowardsPack); }
+    public boolean isWelcomeShown() { return welcomeShown; }
+    public void setWelcomeShown(boolean welcomeShown) { this.welcomeShown = welcomeShown; }
 
     public int packCount(PackType type) { return packs.getOrDefault(type, 0); }
     public void addPack(PackType type) { packs.put(type, packCount(type) + 1); }

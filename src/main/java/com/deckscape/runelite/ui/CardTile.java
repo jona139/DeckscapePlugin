@@ -19,19 +19,31 @@ public class CardTile extends JComponent
 {
     private final DeckscapeCard card;
     private final int owned;
+    private final boolean goldTrim;
 
     public CardTile(DeckscapeCard card, int owned)
     {
-        this(card, owned, null);
+        this(card, owned, false, null);
     }
 
     public CardTile(DeckscapeCard card, int owned, Runnable onClick)
     {
+        this(card, owned, false, onClick);
+    }
+
+    public CardTile(DeckscapeCard card, int owned, boolean goldTrim)
+    {
+        this(card, owned, goldTrim, null);
+    }
+
+    public CardTile(DeckscapeCard card, int owned, boolean goldTrim, Runnable onClick)
+    {
         this.card = card;
         this.owned = owned;
+        this.goldTrim = goldTrim;
         setPreferredSize(new Dimension(124, owned >= 0 ? collectionHeightForWidth(124) : cardHeightForWidth(124)));
         setMinimumSize(new Dimension(84, owned >= 0 ? collectionHeightForWidth(84) : cardHeightForWidth(84)));
-        setToolTipText(card.getName() + " · " + card.getRarity());
+        setToolTipText(card.getName() + " · " + card.getRarity() + (goldTrim ? " · Gold trim equipped" : ""));
         if (onClick != null)
         {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -69,7 +81,7 @@ public class CardTile extends JComponent
     protected void paintCard(Graphics2D g, int width, int height)
     {
         int cardHeight = owned >= 0 ? Math.min(height, cardHeightForWidth(width)) : height;
-        CardPainter.paintFace(g, 0, 0, width, cardHeight, card, owned);
+        CardPainter.paintFace(g, 0, 0, width, cardHeight, card, owned, goldTrim);
     }
 
     static int cardHeightForWidth(int width)

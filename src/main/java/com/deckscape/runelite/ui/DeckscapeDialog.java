@@ -67,6 +67,7 @@ public final class DeckscapeDialog extends JFrame
     private String collectionKind = "All types";
     private String collectionOwnership = "All cards";
     private String collectionSort = "Name A-Z";
+    private boolean hideCompletedChallenges;
 
     public enum Tab { COLLECTION, PACKS, CHALLENGES }
 
@@ -373,7 +374,8 @@ public final class DeckscapeDialog extends JFrame
         for (DeckscapeCard card : shown)
         {
             int owned = state.getCollection().getOrDefault(card.getId(), 0);
-            grid.add(new CardTile(card, owned, () -> showCardDetail(card, owned)));
+            boolean goldTrim = state.getSelectedGoldTrims().contains(card.getId());
+            grid.add(new CardTile(card, owned, goldTrim, () -> showCardDetail(card, owned, goldTrim)));
         }
         resultCount.setText("Showing " + shown.size() + " of " + CardCatalog.all().size() + " cards");
         grid.revalidate();
@@ -399,7 +401,7 @@ public final class DeckscapeDialog extends JFrame
     }
 
     /** Web-inspector-style detail view on the glass pane: big card left, details right. */
-    private void showCardDetail(DeckscapeCard card, int owned)
+    private void showCardDetail(DeckscapeCard card, int owned, boolean goldTrim)
     {
         JPanel backdrop = new JPanel(new GridBagLayout())
         {
@@ -425,7 +427,7 @@ public final class DeckscapeDialog extends JFrame
         // Swallow clicks so only the backdrop closes the inspector.
         sheet.addMouseListener(new MouseAdapter() { });
 
-        CardTile preview = new CardTile(card, -1);
+        CardTile preview = new CardTile(card, -1, goldTrim);
         preview.setPreferredSize(new Dimension(220, 330));
         sheet.add(preview, BorderLayout.WEST);
 
@@ -585,13 +587,27 @@ public final class DeckscapeDialog extends JFrame
         DeckscapeState state = store.load();
         JPanel page = page();
         page.add(sectionTitle("OSRS gold-frame challenges"));
+        JCheckBox hideCompleted = new JCheckBox("Hide completed challenges", hideCompletedChallenges);
+        hideCompleted.setOpaque(false);
+        hideCompleted.setForeground(DeckscapePalette.PARCHMENT);
+        hideCompleted.setFont(hideCompleted.getFont().deriveFont(14f));
+        hideCompleted.setFocusPainted(false);
+        hideCompleted.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hideCompleted.addActionListener(event -> {
+            hideCompletedChallenges = hideCompleted.isSelected();
+            refreshView();
+        });
+        page.add(hideCompleted);
         page.add(Box.createRigidArea(new Dimension(0, 10)));
 
+        int visibleChallenges = 0;
         for (RuneLiteChallenge challenge : RuneLiteChallenge.ALL)
         {
             int progress = Math.min(challenge.getTarget(), state.getChallengeProgress().getOrDefault(challenge.getMetric(), 0));
             boolean verified = progress >= challenge.getTarget();
             boolean claimed = state.getCompletedChallenges().contains(challenge.getTierKey());
+            if (hideCompletedChallenges && claimed) continue;
+            visibleChallenges++;
             JPanel task = new JPanel();
             task.setLayout(new BoxLayout(task, BoxLayout.Y_AXIS));
             task.setBackground(claimed ? new Color(50, 43, 24) : DeckscapePalette.PANEL);
@@ -617,6 +633,16 @@ public final class DeckscapeDialog extends JFrame
             task.add(description);
             page.add(task);
             page.add(Box.createRigidArea(new Dimension(0, 8)));
+        }
+
+        if (visibleChallenges == 0)
+        {
+            JLabel empty = new JLabel("All challenges are complete. Disable the filter to review them.");
+            empty.setForeground(DeckscapePalette.MUTED);
+            empty.setFont(empty.getFont().deriveFont(14f));
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            page.add(empty);
+            page.add(Box.createRigidArea(new Dimension(0, 10)));
         }
 
         JLabel note = new JLabel("<html>Only verified activity on normal main-game worlds counts. "

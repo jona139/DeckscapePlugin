@@ -14,6 +14,7 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
+import java.awt.event.HierarchyEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.inject.Inject;
@@ -167,9 +168,19 @@ public final class DeckscapePanel extends PluginPanel
         body.add(actionButton("Packs", "Open rewards on the game canvas", DeckscapeDialog.Tab.PACKS));
         body.add(Box.createRigidArea(new Dimension(0, 8)));
         body.add(actionButton("OSRS challenges", "Track verified in-game feats", DeckscapeDialog.Tab.CHALLENGES));
+        body.add(Box.createRigidArea(new Dimension(0, 8)));
+        JButton guideButton = smallButton("Guide, setup & privacy");
+        guideButton.setAlignmentX(CENTER_ALIGNMENT);
+        guideButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        guideButton.addActionListener(event -> showWelcome());
+        body.add(guideButton);
         body.add(Box.createVerticalGlue());
 
         add(body, BorderLayout.CENTER);
+        addHierarchyListener(event -> {
+            if ((event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing())
+                showWelcomeIfNeeded();
+        });
         refresh();
     }
 
@@ -298,6 +309,20 @@ public final class DeckscapePanel extends PluginPanel
     public void hideDialog()
     {
         SwingUtilities.invokeLater(() -> { if (dialog != null) dialog.setVisible(false); });
+    }
+
+    private void showWelcomeIfNeeded()
+    {
+        DeckscapeState state = store.load();
+        if (state.isWelcomeShown()) return;
+        state.setWelcomeShown(true);
+        store.save();
+        SwingUtilities.invokeLater(this::showWelcome);
+    }
+
+    private void showWelcome()
+    {
+        new DeckscapeWelcomeDialog(this).setVisible(true);
     }
 
     public void disposeDialog()

@@ -3,13 +3,14 @@
 Deckscape is the opt-in RuneLite companion for a player's server-authoritative Deckscape account.
 It synchronizes the current 361-card release catalog and collection, opens packs, displays Coins,
 Stardust, and Golden Nuggets, awards balanced XP rolls, and verifies OSRS gold-frame challenges.
+Play and manage the linked account at [deckscape.gamecubejona.com](https://deckscape.gamecubejona.com).
 
 ## Data sharing and privacy
 
 Deckscape relies on an external service operated by the plugin author and hosted by
 [Supabase](https://supabase.com) at
 `https://ahqakitttmbcpxdpdlkx.supabase.co/functions/v1/economy`. The plugin makes no network requests until the player checks
-**Share data with Deckscape** in RuneLite's Deckscape settings.
+**Share data with Deckscape (third party)** in RuneLite's Deckscape settings.
 
 After consent, the plugin sends only the information required for these features: a random revocable
 device token; XP deltas; verified challenge event details; the current world number and world-type
@@ -32,7 +33,7 @@ from the Deckscape website.
 - XP and challenge observations use a persisted retry outbox with stable event IDs.
 - Pack rolls, XP rewards, pack opening, card grants, and challenge progress are server-authoritative.
 - Opening a pack awards five cards plus 1-5 Stardust.
-- Every 50,000 verified XP rolls server-side for a pack (45%), 25-75 Coins (35%), 1 Stardust (1%), or no reward (19%).
+- Every 35,000 verified XP rolls server-side for a core pack (45%), 200-400 Coins (35%), 1 Stardust (1%), or no reward (19%).
 - Gold-frame tasks count only on normal main-game worlds. PvP, high-risk, bounty, Leagues, Deadman,
   Last Man Standing, PvP Arena, no-save, tournament, beta, quest-speedrunning, and Fresh Start worlds are excluded.
 - A failed or unavailable service never grants, opens, or consumes anything locally.

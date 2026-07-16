@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DeckscapeStateSyncTest
 {
     @Test
-    void usesTemporaryTestingRewardIntervalByDefault()
+    void usesLaunchRewardIntervalByDefault()
     {
-        assertEquals(250, new DeckscapeState().getXpRewardInterval());
+        assertEquals(35000, new DeckscapeState().getXpRewardInterval());
     }
 
     @Test
@@ -39,6 +39,8 @@ class DeckscapeStateSyncTest
         state.setStardust(7);
         state.setGoldenNuggets(45);
         state.setXpRewardInterval(50_000);
+        state.setWelcomeShown(true);
+        state.getSelectedGoldTrims().add("adventurer_archer");
         JsonObject payload = new JsonObject();
         payload.addProperty("xp", 75);
         state.getPendingEvents().add(new PendingSyncEvent("runelite_xp", "123e4567-e89b-12d3-a456-426614174000", payload));
@@ -53,6 +55,8 @@ class DeckscapeStateSyncTest
         assertEquals(7, restored.getStardust());
         assertEquals(45, restored.getGoldenNuggets());
         assertEquals(50_000, restored.getXpRewardInterval());
+        assertTrue(restored.isWelcomeShown());
+        assertTrue(restored.getSelectedGoldTrims().contains("adventurer_archer"));
         assertEquals(75, restored.getPendingEvents().get(0).getPayload().get("xp").getAsInt());
         assertEquals("123e4567-e89b-12d3-a456-426614174000", restored.getPendingEvents().get(0).getPayload().get("eventId").getAsString());
     }

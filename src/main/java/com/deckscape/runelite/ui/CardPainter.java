@@ -56,6 +56,12 @@ public final class CardPainter
     /** Paints the web-style card face. Pass owned &lt; 0 to hide the xN badge. */
     public static void paintFace(Graphics2D graphics, int x, int y, int w, int h, DeckscapeCard card, int owned)
     {
+        paintFace(graphics, x, y, w, h, card, owned, false);
+    }
+
+    /** Paints a synchronized gold-trim cosmetic around the normal card face. */
+    public static void paintFace(Graphics2D graphics, int x, int y, int w, int h, DeckscapeCard card, int owned, boolean goldTrim)
+    {
         Graphics2D g = (Graphics2D) graphics.create();
         g.translate(x, y);
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -65,10 +71,19 @@ public final class CardPainter
         // Rarity border: 2px frame with a 5px left ribbon, parchment body.
         int edge = Math.max(2, Math.round(2 * s));
         int ribbon = Math.max(4, Math.round(5 * s));
-        g.setColor(rarity);
+        if (goldTrim)
+            g.setPaint(new GradientPaint(0, 0, new Color(0xffef91), w, h, new Color(0xa96808)));
+        else
+            g.setColor(rarity);
         g.fill(new RoundRectangle2D.Float(0, 0, w, h, 6, 6));
         g.setPaint(new GradientPaint(0, 0, PARCHMENT, w * .35f, h, PARCHMENT_EDGE));
         g.fill(new RoundRectangle2D.Float(ribbon, edge, w - ribbon - edge, h - edge * 2, 4, 4));
+        if (goldTrim)
+        {
+            g.setColor(new Color(255, 238, 153, 220));
+            g.setStroke(new BasicStroke(Math.max(1f, 1.15f * s)));
+            g.draw(new RoundRectangle2D.Float(edge / 2f, edge / 2f, w - edge, h - edge, 5, 5));
+        }
 
         int pad = Math.max(3, Math.round(4 * s));
         Rectangle inner = new Rectangle(ribbon + pad - 1, edge + pad - 1, w - ribbon - edge - pad * 2 + 2, h - edge * 2 - pad * 2 + 2);

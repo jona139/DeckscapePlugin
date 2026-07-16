@@ -544,6 +544,19 @@ public final class DeckscapePlugin extends Plugin
             state.getOwnedGoldTrims().clear();
             for (JsonElement card : serverState.getAsJsonArray("ownedGoldTrims")) state.getOwnedGoldTrims().add(card.getAsString());
         }
+        if (serverState.has("profile") && serverState.get("profile").isJsonObject())
+        {
+            JsonObject profile = serverState.getAsJsonObject("profile");
+            state.getSelectedGoldTrims().clear();
+            if (profile.has("selectedGoldTrims") && profile.get("selectedGoldTrims").isJsonObject())
+            {
+                for (Map.Entry<String, JsonElement> entry : profile.getAsJsonObject("selectedGoldTrims").entrySet())
+                {
+                    if (!entry.getValue().isJsonNull() && entry.getValue().getAsBoolean())
+                        state.getSelectedGoldTrims().add(entry.getKey());
+                }
+            }
+        }
         if (serverState.has("challengeProgress"))
         {
             state.getChallengeProgress().clear();
