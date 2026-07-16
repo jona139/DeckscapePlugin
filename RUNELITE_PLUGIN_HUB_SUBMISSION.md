@@ -27,12 +27,12 @@ Plugin Hub review is primarily a security, Jagex-rules, and repository-complianc
 
 The service controls reward cadence and amounts. Before publishing the plugin:
 
-1. In `C:\Projects\DeckscapeWeb`, review `supabase/migrations/20260732_runelite_reward_economy.sql`.
+1. In `C:\Projects\DeckscapeWeb`, review the pending forward migrations, ending with `supabase/migrations/20260733_split_runelite_xp_rewards.sql`.
 2. Confirm `npx supabase migration list` shows no duplicate local migration versions. Never edit or rename an already-applied migration.
 3. Apply the forward migration with `npx supabase db push`.
 4. Deploy the synchronized edge function with `npx supabase functions deploy economy`.
 5. Deploy the web app containing the matching generated economy data.
-6. Pair a disposable test account and confirm Sync reports a 35,000 XP interval and Coins rewards are always 200–400.
+6. Pair a disposable test account and confirm Sync reports independent 50,000-XP pack and 10,000-XP currency tracks. Verify pack rolls are 50%, and every currency roll yields either 100–200 Coins or 1–3 Stardust.
 
 Do not submit the plugin while production still reports the old testing interval; the server snapshot overrides the local fallback.
 
@@ -52,7 +52,7 @@ Then launch a development client with `./gradlew run` and verify all of the foll
 3. Consent on: a one-use pairing code appears, linking succeeds, and no RuneScape/web password is requested.
 4. Synchronization: automatic idle sync is limited to once per five minutes; manual **Sync now** works inside that window; pack interactions sync immediately.
 5. Collection: full catalog, search, filters, sorting, owned/missing state, alternate web-selected art, and web-selected gold trim refresh after Sync.
-6. Rewards: one roll at 35,000 eligible XP; only General/Combat/Skilling packs can roll; Coins are 200–400; Stardust and no-reward outcomes are handled; reconnect/retry cannot duplicate a reward.
+6. Rewards: independent rolls at 50,000 eligible XP for a 50% core-pack chance and at 10,000 XP for 80% 100–200 Coins or 20% 1–3 Stardust; only General/Combat/Skilling packs can roll; reconnect/retry cannot duplicate either reward track.
 7. Packs: inventory is server-authoritative, opening consumes exactly one pack, grants five cards and 1–5 Stardust, and failures consume nothing.
 8. Challenges: each task verifies only its intended in-game event; completed challenges can be hidden; claim state refreshes after website claim.
 9. World restrictions: repeat XP/challenge attempts on a normal world and on Leagues, Deadman, LMS, PvP/high-risk, PvP Arena, beta/tournament/speedrunning/no-save worlds. Only the normal-world attempt may progress.

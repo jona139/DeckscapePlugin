@@ -82,6 +82,23 @@ public final class DeckscapePanel extends PluginPanel
         body.add(subtitle);
         body.add(Box.createRigidArea(new Dimension(0, 16)));
 
+        JPanel featureCard = card();
+        JLabel featureTitle = new JLabel("MORE THAN A COLLECTION");
+        featureTitle.setForeground(DeckscapePalette.GOLD);
+        featureTitle.setFont(new Font("SansSerif", Font.BOLD, 11));
+        featureTitle.setAlignmentX(LEFT_ALIGNMENT);
+        featureCard.add(featureTitle);
+        featureCard.add(Box.createRigidArea(new Dimension(0, 6)));
+        JLabel featureCopy = new JLabel("<html>Use the cards you earn here to play a fully working card game at "
+            + "<b>deckscape.gamecubejona.com</b>.<br><br>Discover alternate card art created by OSRS artists, "
+            + "and unlock gold card trims that show off verified achievements from the real game.</html>");
+        featureCopy.setForeground(DeckscapePalette.PARCHMENT);
+        featureCopy.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        featureCopy.setAlignmentX(LEFT_ALIGNMENT);
+        featureCard.add(featureCopy);
+        body.add(featureCard);
+        body.add(Box.createRigidArea(new Dimension(0, 10)));
+
         JPanel statusCard = card();
         statusLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         statusLabel.setAlignmentX(LEFT_ALIGNMENT);
