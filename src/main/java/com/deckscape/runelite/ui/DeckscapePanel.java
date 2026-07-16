@@ -244,6 +244,14 @@ public final class DeckscapePanel extends PluginPanel
         SwingUtilities.invokeLater(() -> { if (dialog != null) dialog.setVisible(false); });
     }
 
+    public void disposeDialog()
+    {
+        SwingUtilities.invokeLater(() -> {
+            if (dialog != null) dialog.dispose();
+            dialog = null;
+        });
+    }
+
     public void setHandlers(DeckscapeDialog.OpenPackAction openPackAction, Runnable syncAction, Runnable beginPairingAction, java.util.function.Consumer<Integer> soundPlayer)
     {
         this.openPackAction = openPackAction;

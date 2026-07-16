@@ -10,36 +10,37 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.LayoutManager;
-import java.awt.Point;
-import java.awt.RenderingHints;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.WindowConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
-public final class DeckscapeDialog extends JDialog
+public final class DeckscapeDialog extends JFrame
 {
     public interface OpenPackAction { void open(PackType type); }
 
@@ -52,53 +53,38 @@ public final class DeckscapeDialog extends JDialog
     private final java.util.function.Consumer<Integer> soundPlayer;
     private final JPanel content = new JPanel(new BorderLayout());
 
-    private Point initialClick;
     private Tab activeTab = Tab.PACKS;
+    private String collectionSearch = "";
+    private String collectionFaction = "All factions";
+    private String collectionRarity = "All rarities";
+    private String collectionKind = "All types";
+    private String collectionOwnership = "All cards";
 
     public enum Tab { COLLECTION, PACKS, CHALLENGES }
 
     public DeckscapeDialog(Frame parent, DeckscapeStore store, OpenPackAction openPackAction, Runnable syncAction, java.util.function.Consumer<Integer> soundPlayer)
     {
-        super(parent, "Deckscape Companion", false);
+        super("Deckscape Companion");
         this.store = store;
         this.openPackAction = openPackAction;
         this.syncAction = syncAction;
         this.soundPlayer = soundPlayer;
 
-        setUndecorated(true);
+        setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+        setResizable(true);
         setSize(780, 560);
         setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
         setLocationRelativeTo(parent);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(DeckscapePalette.PANEL_DARK);
-        mainPanel.setBorder(BorderFactory.createLineBorder(DeckscapePalette.BRASS, 3));
+        mainPanel.setBorder(BorderFactory.createLineBorder(DeckscapePalette.BRASS, 2));
 
-        // Title Bar / Dragging area
+        // Keep Deckscape navigation inside a normal Windows frame. The operating system
+        // supplies dragging, edge/corner resizing, minimize, maximize, and close controls.
         JPanel titleBar = new JPanel(new BorderLayout());
         titleBar.setBackground(DeckscapePalette.PANEL);
         titleBar.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, DeckscapePalette.BRASS));
-
-        MouseAdapter dragListener = new MouseAdapter()
-        {
-            @Override
-            public void mousePressed(MouseEvent e)
-            {
-                initialClick = e.getPoint();
-            }
-
-            @Override
-            public void mouseDragged(MouseEvent e)
-            {
-                int thisX = getLocation().x;
-                int thisY = getLocation().y;
-                int xMoved = e.getX() - initialClick.x;
-                int yMoved = e.getY() - initialClick.y;
-                setLocation(thisX + xMoved, thisY + yMoved);
-            }
-        };
-        titleBar.addMouseListener(dragListener);
-        titleBar.addMouseMotionListener(dragListener);
 
         JLabel titleLabel = new JLabel("<html><span style='color:#ffd45e; font-weight:bold;'>Deckscape Companion</span></html>");
         titleLabel.setFont(titleLabel.getFont().deriveFont(16f));
@@ -113,83 +99,13 @@ public final class DeckscapeDialog extends JDialog
         headerTabs.add(tabButton("Challenges", Tab.CHALLENGES));
         titleBar.add(headerTabs, BorderLayout.CENTER);
 
-        // Close button
-        JButton closeButton = new JButton("X");
-        closeButton.setFont(new Font("Monospaced", Font.BOLD, 14));
-        closeButton.setForeground(DeckscapePalette.GOLD);
-        closeButton.setBackground(DeckscapePalette.PANEL);
-        closeButton.setFocusPainted(false);
-        closeButton.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
-        closeButton.addActionListener(e -> setVisible(false));
-        titleBar.add(closeButton, BorderLayout.EAST);
-
         mainPanel.add(titleBar, BorderLayout.NORTH);
 
         // Content panel
         content.setBackground(DeckscapePalette.PANEL_DARK);
         mainPanel.add(content, BorderLayout.CENTER);
 
-        add(mainPanel);
-        installResizeGrip();
-    }
-
-    /** Undecorated dialogs have no OS resize border; this grip in the bottom-right provides one. */
-    private void installResizeGrip()
-    {
-        JComponent grip = new JComponent()
-        {
-            @Override
-            protected void paintComponent(Graphics graphics)
-            {
-                Graphics2D g = (Graphics2D) graphics.create();
-                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g.setColor(DeckscapePalette.BRASS);
-                int size = getWidth();
-                for (int i = 1; i <= 3; i++)
-                {
-                    int offset = i * 4;
-                    g.drawLine(size - offset, size - 2, size - 2, size - offset);
-                }
-                g.dispose();
-            }
-        };
-        grip.setSize(18, 18);
-        grip.setCursor(Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR));
-        grip.setToolTipText("Drag to resize");
-        MouseAdapter resizer = new MouseAdapter()
-        {
-            private Point start;
-            private Dimension startSize;
-
-            @Override
-            public void mousePressed(MouseEvent event)
-            {
-                start = event.getLocationOnScreen();
-                startSize = getSize();
-            }
-
-            @Override
-            public void mouseDragged(MouseEvent event)
-            {
-                Point now = event.getLocationOnScreen();
-                int width = Math.max(MIN_WIDTH, startSize.width + now.x - start.x);
-                int height = Math.max(MIN_HEIGHT, startSize.height + now.y - start.y);
-                setSize(width, height);
-                revalidate();
-            }
-        };
-        grip.addMouseListener(resizer);
-        grip.addMouseMotionListener(resizer);
-        getLayeredPane().add(grip, JLayeredPane.DRAG_LAYER);
-        addComponentListener(new ComponentAdapter()
-        {
-            @Override
-            public void componentResized(ComponentEvent event)
-            {
-                grip.setLocation(getLayeredPane().getWidth() - grip.getWidth() - 3, getLayeredPane().getHeight() - grip.getHeight() - 3);
-            }
-        });
-        grip.setLocation(getLayeredPane().getWidth() - grip.getWidth() - 3, getLayeredPane().getHeight() - grip.getHeight() - 3);
+        setContentPane(mainPanel);
     }
 
     public void showTab(Tab tab)
@@ -252,19 +168,120 @@ public final class DeckscapeDialog extends JDialog
         titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         page.add(titleRow);
-        page.add(Box.createRigidArea(new Dimension(0, 10)));
+        page.add(Box.createRigidArea(new Dimension(0, 6)));
 
-        // Aspect-locked grid: tiles keep the 2:3 card shape at any window width.
-        JPanel grid = new JPanel(new CardGridLayout(5, 10, 12));
+        JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 5));
+        filters.setBackground(DeckscapePalette.PANEL);
+        filters.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(91, 82, 64)),
+            BorderFactory.createEmptyBorder(4, 5, 4, 5)));
+        filters.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filters.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
+
+        JTextField search = new JTextField(collectionSearch, 16);
+        search.setToolTipText("Search card names");
+        search.setPreferredSize(new Dimension(180, 28));
+        styleFilter(search);
+
+        Set<String> factions = new TreeSet<>();
+        for (DeckscapeCard card : CardCatalog.all()) factions.add(card.getFaction());
+        JComboBox<String> faction = new JComboBox<>();
+        faction.addItem("All factions");
+        for (String value : factions) faction.addItem(value);
+        faction.setSelectedItem(collectionFaction);
+        styleFilter(faction);
+
+        JComboBox<String> rarity = new JComboBox<>(new String[] {
+            "All rarities", "Common", "Uncommon", "Rare", "Epic", "Legendary"
+        });
+        rarity.setSelectedItem(collectionRarity);
+        styleFilter(rarity);
+
+        JComboBox<String> kind = new JComboBox<>(new String[] {
+            "All types", "Unit", "Equipment", "Spell", "Prayer"
+        });
+        kind.setSelectedItem(collectionKind);
+        styleFilter(kind);
+
+        JComboBox<String> ownership = new JComboBox<>(new String[] {"All cards", "Owned", "Missing"});
+        ownership.setSelectedItem(collectionOwnership);
+        styleFilter(ownership);
+
+        JLabel searchLabel = new JLabel("Search:");
+        searchLabel.setForeground(DeckscapePalette.PARCHMENT);
+        filters.add(searchLabel);
+        filters.add(search);
+        filters.add(faction);
+        filters.add(rarity);
+        filters.add(kind);
+        filters.add(ownership);
+        page.add(filters);
+        page.add(Box.createRigidArea(new Dimension(0, 5)));
+
+        JLabel resultCount = new JLabel();
+        resultCount.setForeground(DeckscapePalette.MUTED);
+        resultCount.setFont(resultCount.getFont().deriveFont(11f));
+        resultCount.setAlignmentX(Component.LEFT_ALIGNMENT);
+        page.add(resultCount);
+        page.add(Box.createRigidArea(new Dimension(0, 8)));
+
+        // Aspect-locked, responsive grid: resizing/maximizing adds columns instead of stretching five cards indefinitely.
+        JPanel grid = new JPanel(new CardGridLayout(132, 10, 12));
         grid.setOpaque(false);
         grid.setAlignmentX(Component.LEFT_ALIGNMENT);
+        page.add(grid);
+
+        Runnable rebuild = () -> rebuildCollectionGrid(grid, resultCount, state);
+        search.getDocument().addDocumentListener(new DocumentListener()
+        {
+            private void changed()
+            {
+                collectionSearch = search.getText().trim();
+                rebuild.run();
+            }
+
+            @Override public void insertUpdate(DocumentEvent event) { changed(); }
+            @Override public void removeUpdate(DocumentEvent event) { changed(); }
+            @Override public void changedUpdate(DocumentEvent event) { changed(); }
+        });
+        faction.addActionListener(event -> { collectionFaction = String.valueOf(faction.getSelectedItem()); rebuild.run(); });
+        rarity.addActionListener(event -> { collectionRarity = String.valueOf(rarity.getSelectedItem()); rebuild.run(); });
+        kind.addActionListener(event -> { collectionKind = String.valueOf(kind.getSelectedItem()); rebuild.run(); });
+        ownership.addActionListener(event -> { collectionOwnership = String.valueOf(ownership.getSelectedItem()); rebuild.run(); });
+        rebuild.run();
+        return page;
+    }
+
+    private void rebuildCollectionGrid(JPanel grid, JLabel resultCount, DeckscapeState state)
+    {
+        grid.removeAll();
+        String search = collectionSearch.toLowerCase(Locale.ROOT);
+        int shown = 0;
         for (DeckscapeCard card : CardCatalog.all())
         {
             int owned = state.getCollection().getOrDefault(card.getId(), 0);
+            if (!search.isEmpty() && !card.getName().toLowerCase(Locale.ROOT).contains(search)) continue;
+            if (!"All factions".equals(collectionFaction) && !collectionFaction.equals(card.getFaction())) continue;
+            if (!"All rarities".equals(collectionRarity) && !collectionRarity.equalsIgnoreCase(card.getRarity().name())) continue;
+            if (!"All types".equals(collectionKind) && !collectionKind.equalsIgnoreCase(card.getKind().name())) continue;
+            if ("Owned".equals(collectionOwnership) && owned <= 0) continue;
+            if ("Missing".equals(collectionOwnership) && owned > 0) continue;
             grid.add(new CardTile(card, owned, () -> showCardDetail(card, owned)));
+            shown++;
         }
-        page.add(grid);
-        return page;
+        resultCount.setText("Showing " + shown + " of " + CardCatalog.all().size() + " cards");
+        grid.revalidate();
+        grid.repaint();
+    }
+
+    private static void styleFilter(JComponent component)
+    {
+        component.setForeground(DeckscapePalette.PARCHMENT);
+        component.setBackground(DeckscapePalette.PANEL_DARK);
+        component.setFont(component.getFont().deriveFont(11f));
+        component.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(119, 94, 48)),
+            BorderFactory.createEmptyBorder(3, 6, 3, 6)));
     }
 
     /** Web-inspector-style detail view on the glass pane: big card left, details right. */
@@ -535,16 +552,16 @@ public final class DeckscapeDialog extends JDialog
         return value == null ? "" : value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
-    /** Fixed column count, tile height locked to 1.5x tile width, wrapping rows. */
+    /** Responsive column count with card tiles locked to the 2:3 aspect ratio. */
     private static final class CardGridLayout implements LayoutManager
     {
-        private final int columns;
+        private final int targetWidth;
         private final int hgap;
         private final int vgap;
 
-        CardGridLayout(int columns, int hgap, int vgap)
+        CardGridLayout(int targetWidth, int hgap, int vgap)
         {
-            this.columns = columns;
+            this.targetWidth = targetWidth;
             this.hgap = hgap;
             this.vgap = vgap;
         }
@@ -555,7 +572,8 @@ public final class DeckscapeDialog extends JDialog
         @Override
         public Dimension preferredLayoutSize(Container parent)
         {
-            int width = parent.getWidth() > 0 ? parent.getWidth() : columns * 124 + (columns - 1) * hgap;
+            int width = parent.getWidth() > 0 ? parent.getWidth() : 5 * targetWidth + 4 * hgap;
+            int columns = columns(width);
             int tileW = (width - (columns - 1) * hgap) / columns;
             int tileH = Math.round(tileW * 1.5f);
             int rows = (parent.getComponentCount() + columns - 1) / columns;
@@ -565,13 +583,14 @@ public final class DeckscapeDialog extends JDialog
         @Override
         public Dimension minimumLayoutSize(Container parent)
         {
-            return new Dimension(columns * 84, 126);
+            return new Dimension(2 * 84 + hgap, 126);
         }
 
         @Override
         public void layoutContainer(Container parent)
         {
             int width = parent.getWidth();
+            int columns = columns(width);
             int tileW = (width - (columns - 1) * hgap) / columns;
             int tileH = Math.round(tileW * 1.5f);
             for (int i = 0; i < parent.getComponentCount(); i++)
@@ -580,6 +599,11 @@ public final class DeckscapeDialog extends JDialog
                 int row = i / columns;
                 parent.getComponent(i).setBounds(col * (tileW + hgap), row * (tileH + vgap), tileW, tileH);
             }
+        }
+
+        private int columns(int width)
+        {
+            return Math.max(2, Math.min(10, Math.max(1, (width + hgap) / (targetWidth + hgap))));
         }
     }
 }

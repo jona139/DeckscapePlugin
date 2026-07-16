@@ -43,6 +43,8 @@ import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.Notifier;
+import net.runelite.client.chat.ChatCommandManager;
+import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -51,6 +53,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.Text;
 import okhttp3.OkHttpClient;
 
 @Slf4j
@@ -79,6 +82,8 @@ public final class DeckscapePlugin extends Plugin
     @Inject private ElementalStrikeTracker elementalStrikeTracker;
     @Inject private GoldenFrameChallengeTracker goldenFrameChallengeTracker;
     @Inject private Notifier notifier;
+    @Inject private ChatCommandManager chatCommandManager;
+    @Inject private ChatMessageManager chatMessageManager;
     @Inject private DeckscapeSyncClient syncClient;
     @Inject private OkHttpClient httpClient;
     @Inject private ScheduledExecutorService executor;
@@ -99,6 +104,7 @@ public final class DeckscapePlugin extends Plugin
     {
         DeckscapeState state = store.load();
         DeckscapeImages.configureRemoteArt(httpClient, config::dataSharingConsent, this::repaintDeckscapeArt);
+        chatCommandManager.registerCommand("!deckscape", this::showDeckscapeCollectionSummary);
         panel.setHandlers(this::openPack, this::syncWithServer, this::beginPairing, client::playSoundEffect);
         elementalStrikeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
         goldenFrameChallengeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
@@ -135,10 +141,12 @@ public final class DeckscapePlugin extends Plugin
         goldenFrameChallengeTracker.setCompletionHandler(null);
         goldenFrameChallengeTracker.resetSession();
         DeckscapeImages.clearRemoteArtConfiguration();
+        chatCommandManager.unregisterCommand("!deckscape");
         overlayManager.remove(completionOverlay);
         overlayManager.remove(packRewardOverlay);
         overlayManager.remove(packRevealOverlay);
         mouseManager.unregisterMouseListener(packRevealInputListener);
+        panel.disposeDialog();
         if (navigationButton != null) clientToolbar.removeNavigation(navigationButton);
     }
 
@@ -197,6 +205,15 @@ public final class DeckscapePlugin extends Plugin
     {
         panel.repaint();
         for (Window window : Window.getWindows()) if (window.isShowing()) window.repaint();
+    }
+
+    private void showDeckscapeCollectionSummary(ChatMessage event, String message)
+    {
+        if (event.getMessageNode() == null || client.getLocalPlayer() == null) return;
+        String sender = Text.removeTags(event.getName() == null ? "" : event.getName());
+        if (!sender.equalsIgnoreCase(client.getLocalPlayer().getName())) return;
+        event.getMessageNode().setRuneLiteFormatMessage(CollectionRaritySummary.build(store.load()));
+        chatMessageManager.update(event.getMessageNode());
     }
 
     private void maintainSync()
