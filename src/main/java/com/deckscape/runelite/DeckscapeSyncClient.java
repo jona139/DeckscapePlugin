@@ -40,6 +40,11 @@ public final class DeckscapeSyncClient
         {
             return statusCode == 400 || statusCode == 422;
         }
+
+        public boolean isAuthenticationFailure()
+        {
+            return statusCode == 401 || statusCode == 403;
+        }
     }
 
     @Inject

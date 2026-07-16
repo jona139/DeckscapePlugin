@@ -388,12 +388,13 @@ public final class DeckscapePlugin extends Plugin
 
     private void handleEventFailure(PendingSyncEvent item, Throwable error)
     {
+        eventInFlight.set(false);
+        if (handleRevokedLink(error)) return;
         Throwable cause = error;
         while (cause.getCause() != null) cause = cause.getCause();
         if (!(cause instanceof DeckscapeSyncClient.HttpException)
             || !((DeckscapeSyncClient.HttpException) cause).isPermanentValidationFailure())
         {
-            eventInFlight.set(false);
             log.warn("Deckscape event retained for retry: " + item.getEventId(), error);
             panel.refresh();
             return;
@@ -407,7 +408,6 @@ public final class DeckscapePlugin extends Plugin
                 current.getPendingEvents().removeIf(event -> item.getEventId().equals(event.getEventId()));
                 store.save();
             }
-            eventInFlight.set(false);
             panel.refresh();
             notifier.notify("Deckscape skipped an invalid queued event and resumed synchronization.");
             flushPendingEvents();
@@ -471,7 +471,14 @@ public final class DeckscapePlugin extends Plugin
                 if (revealed.size() == 5) packRevealOverlay.showPack(type, revealed, stardustAward);
                 else notifier.notify("The pack opened, but this plugin version could not display every card. Your collection is safe and synchronized.");
             }))
-            .exceptionally(error -> { log.warn("Failed to open pack", error); notifier.notify("Deckscape could not open that pack. Nothing was opened locally."); return null; });
+            .exceptionally(error -> {
+                if (!handleRevokedLink(error))
+                {
+                    log.warn("Failed to open pack", error);
+                    notifier.notify("Deckscape could not open that pack. Nothing was opened locally.");
+                }
+                return null;
+            });
     }
 
     private void syncWithServer()
@@ -493,10 +500,33 @@ public final class DeckscapePlugin extends Plugin
             }))
             .exceptionally(error -> {
                 syncInFlight.set(false);
+                if (handleRevokedLink(error)) return null;
                 log.warn("Deckscape sync failed", error);
                 panel.refresh();
                 return null;
             });
+    }
+
+    private boolean handleRevokedLink(Throwable error)
+    {
+        Throwable cause = error;
+        while (cause.getCause() != null) cause = cause.getCause();
+        if (!(cause instanceof DeckscapeSyncClient.HttpException)
+            || !((DeckscapeSyncClient.HttpException) cause).isAuthenticationFailure()) return false;
+
+        SwingUtilities.invokeLater(() -> {
+            DeckscapeState state = store.load();
+            synchronized (state)
+            {
+                state.resetAfterRevokedLink();
+                store.save();
+            }
+            panel.hideDialog();
+            panel.refresh();
+            notifier.notify("Deckscape access was revoked. A new sync code is ready to link again.");
+            beginPairing();
+        });
+        return true;
     }
 
     private void manualSync()

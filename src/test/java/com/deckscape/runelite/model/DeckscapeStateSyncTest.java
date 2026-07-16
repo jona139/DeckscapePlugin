@@ -19,6 +19,35 @@ class DeckscapeStateSyncTest
     }
 
     @Test
+    void revokedLinkClearsLocalAccountAndAllowsPairingAgain()
+    {
+        DeckscapeState state = new DeckscapeState();
+        state.setDeviceToken("revoked-device-token");
+        state.setPairingCode("OLD-CODE-1");
+        state.setPendingDeviceToken("old-pending-token");
+        state.setCoins(25);
+        state.setStardust(4);
+        state.setGoldenNuggets(3);
+        state.addCard("man");
+        state.addPack(PackType.GENERAL);
+        state.getChallengeProgress().put("matches_won", 2);
+        state.getOwnedGoldTrims().add("man");
+
+        state.resetAfterRevokedLink();
+
+        assertFalse(state.isLinked());
+        assertEquals("", state.getPairingCode());
+        assertEquals("", state.getPendingDeviceToken());
+        assertTrue(state.getCollection().isEmpty());
+        assertEquals(0, state.packCount(PackType.GENERAL));
+        assertEquals(0, state.getCoins());
+        assertEquals(0, state.getStardust());
+        assertEquals(0, state.getGoldenNuggets());
+        assertTrue(state.getChallengeProgress().isEmpty());
+        assertTrue(state.getOwnedGoldTrims().isEmpty());
+    }
+
+    @Test
     void batchesPassiveXpWithoutExceedingTheApiLimit()
     {
         JsonObject payload = new JsonObject();

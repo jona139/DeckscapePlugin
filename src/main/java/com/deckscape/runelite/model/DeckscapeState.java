@@ -59,6 +59,24 @@ public final class DeckscapeState
     public long getPairingExpiresAt() { return pairingExpiresAt; }
     public void setPairingExpiresAt(long pairingExpiresAt) { this.pairingExpiresAt = pairingExpiresAt; }
     public void clearPairingSession() { pairingCode = null; pendingDeviceToken = null; pairingExpiresAt = 0L; }
+    public void resetAfterRevokedLink()
+    {
+        deviceToken = null;
+        clearPairingSession();
+        collection.clear();
+        for (PackType type : PackType.values()) packs.put(type, 0);
+        completedChallenges.clear();
+        getChallengeProgress().clear();
+        getOwnedGoldTrims().clear();
+        getSelectedGoldTrims().clear();
+        getPendingEvents().clear();
+        coins = 0;
+        stardust = 0;
+        goldenNuggets = 0;
+        xpTowardsPack = 0;
+        xpTowardsCurrency = 0;
+        lastSyncAt = 0L;
+    }
     public long getLastSyncAt() { return lastSyncAt; }
     public void setLastSyncAt(long lastSyncAt) { this.lastSyncAt = lastSyncAt; }
     public List<PendingSyncEvent> getPendingEvents() { if (pendingEvents == null) pendingEvents = new ArrayList<>(); return pendingEvents; }
