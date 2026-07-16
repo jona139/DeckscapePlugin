@@ -4,12 +4,12 @@ Last updated: 15 July 2026
 
 Deckscape is an optional online service operated by the Deckscape plugin author and hosted on Supabase at
 `https://ahqakitttmbcpxdpdlkx.supabase.co/functions/v1/economy`.
-RuneLite remains usable without Deckscape, and this plugin sends nothing until the player explicitly enables
-**Share data with Deckscape (third party)** in the plugin settings.
+RuneLite remains usable without Deckscape, and this plugin sends nothing unless it is installed and enabled.
+Plugin Hub displays a third-party communication warning before installation.
 
 ## Data processed
 
-After consent, the plugin may send:
+While enabled, the plugin may send:
 
 - a random, revocable Deckscape device token;
 - XP delta amounts;
@@ -18,7 +18,7 @@ After consent, the plugin may send:
 - pack-open and account-synchronization actions; and
 - network metadata necessarily handled by the service provider, including IP address and request timestamps.
 
-For cards whose artwork is not bundled with the plugin, the plugin makes consent-gated HTTPS image requests
+For cards whose artwork is not bundled with the plugin, the plugin makes HTTPS image requests
 directly to `oldschool.runescape.wiki`. The wiki receives ordinary request metadata such as the IP address,
 request time, and the plugin's identifying user-agent. Downloaded images are held only in memory for the
 current RuneLite session.
@@ -44,8 +44,8 @@ or account information in artwork requests.
 ## Retention and control
 
 Account state and idempotency/event records are retained while needed to operate the linked Deckscape account
-and prevent duplicate rewards. Unchecking the consent option stops new requests immediately. Revoking the
-RuneLite link on the Deckscape website invalidates the device token. For account-data access or deletion requests,
+and prevent duplicate rewards. Disabling or uninstalling the plugin stops new requests. Revoking the RuneLite
+link on the Deckscape website invalidates the device token. For account-data access or deletion requests,
 use the contact method published on the [Deckscape plugin repository](https://github.com/jona139/DeckscapePlugin).
 
 This notice should be updated before release whenever the service endpoint, data categories, purposes, provider,

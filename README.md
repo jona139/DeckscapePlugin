@@ -1,6 +1,6 @@
 # Deckscape RuneLite plugin
 
-Deckscape is the opt-in RuneLite companion for a player's server-authoritative Deckscape account.
+Deckscape is the online RuneLite companion for a player's server-authoritative Deckscape account.
 It synchronizes the current 361-card release catalog and collection, opens packs, displays Coins,
 Stardust, and Golden Nuggets, awards balanced XP rolls, and verifies OSRS gold-frame challenges.
 Play and manage the linked account at [deckscape.gamecubejona.com](https://deckscape.gamecubejona.com).
@@ -9,25 +9,24 @@ Play and manage the linked account at [deckscape.gamecubejona.com](https://decks
 
 Deckscape relies on an external service operated by the plugin author and hosted by
 [Supabase](https://supabase.com) at
-`https://ahqakitttmbcpxdpdlkx.supabase.co/functions/v1/economy`. The plugin makes no network requests until the player checks
-**Share data with Deckscape (third party)** in RuneLite's Deckscape settings.
+`https://ahqakitttmbcpxdpdlkx.supabase.co/functions/v1/economy`. Plugin Hub displays a third-party communication warning
+before installation. Once installed and enabled, the plugin connects to the Deckscape service.
 
-After consent, the plugin sends only the information required for these features: a random revocable
+While enabled, the plugin sends only the information required for these features: a random revocable
 device token; XP deltas; verified challenge event details; the current world number and world-type
 flags; pack actions; and ordinary network metadata such as the IP address received by the service.
 It does not send RuneScape login credentials, chat, bank contents, the player's RuneScape display name,
 or information about other players. See the full [privacy notice](PRIVACY.md).
 
 When a card has no artwork bundled in the plugin, Deckscape downloads its image over HTTPS directly
-from the [Old School RuneScape Wiki](https://oldschool.runescape.wiki). Downloads are consent-gated,
+from the [Old School RuneScape Wiki](https://oldschool.runescape.wiki). Downloads are restricted to that host,
 restricted to that host, size-limited, decoded in memory, and cached only for the current RuneLite session.
 
-Unchecking the option stops all new Deckscape requests immediately. Players can also revoke the device link
-from the Deckscape website.
+Disabling or uninstalling the plugin stops Deckscape requests. Players can also revoke the device link from the Deckscape website.
 
 ## How it works
 
-- RuneLite shows a one-use code after consent; enter it on the signed-in Deckscape website within ten minutes.
+- RuneLite shows a one-use code when the plugin starts; enter it on the signed-in Deckscape website within ten minutes.
 - The plugin stores a revocable device token and a read-through display cache in RuneLite's `ConfigManager`.
 - Collections, wallets, packs, gold trims, challenges, and the catalog are replaced by each canonical server snapshot.
 - XP and challenge observations use a persisted retry outbox with stable event IDs.
@@ -51,7 +50,7 @@ Deckscape uses Java 11 and RuneLite's `latest.release` client dependency.
 ```
 
 For an in-client test session, run the Gradle `run` task and test pairing, XP rewards, pack opening,
-every challenge, special-world rejection, consent withdrawal, reconnects, and queued-event retries.
+every challenge, special-world rejection, plugin disable/re-enable, reconnects, and queued-event retries.
 
 ## License
 

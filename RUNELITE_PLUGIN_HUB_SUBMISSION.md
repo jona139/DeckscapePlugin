@@ -14,7 +14,7 @@ The local plugin currently meets the code and repository-shape requirements:
 - README, BSD 2-Clause license, privacy notice, and bundled-art attribution
 - resources loaded from the classpath so they work from the built JAR
 - no reflection, native libraries, process execution, arbitrary file access, or local server
-- third-party networking is disclosed and disabled until the player explicitly checks **Share data with Deckscape (third party)**
+- third-party networking is disclosed through the Plugin Hub installation warning and stops when the plugin is disabled or uninstalled
 - server-authoritative/idempotent rewards and normal-world validation, including exclusions for Leagues, Deadman, LMS and other special modes
 
 The built plugin JAR is currently about 20.3 MB because card artwork is bundled. The official instructions do not state a JAR-size limit, and bundling avoids most runtime downloads, but call this out in the pull request so reviewers are not surprised.
@@ -48,15 +48,15 @@ Run automated checks from the plugin repository:
 Then launch a development client with `./gradlew run` and verify all of the following:
 
 1. Fresh install: the guide opens once when the side panel is first shown and can be reopened with **Guide, setup & privacy**.
-2. Consent off: no Deckscape or Wiki-art network request occurs; Sync and pairing are unavailable.
-3. Consent on: a one-use pairing code appears, linking succeeds, and no RuneScape/web password is requested.
+2. Installation warning: the Plugin Hub warning accurately lists the external data sharing before installation.
+3. Pairing: enabling the installed plugin creates a one-use pairing code, linking succeeds, and no RuneScape/web password is requested.
 4. Synchronization: automatic idle sync is limited to once per five minutes; manual **Sync now** works inside that window; pack interactions sync immediately.
 5. Collection: full catalog, search, filters, sorting, owned/missing state, alternate web-selected art, and web-selected gold trim refresh after Sync.
 6. Rewards: independent rolls at 50,000 eligible XP for a 50% core-pack chance and at 10,000 XP for 80% 100–200 Coins or 20% 1–3 Stardust; only General/Combat/Skilling packs can roll; reconnect/retry cannot duplicate either reward track.
 7. Packs: inventory is server-authoritative, opening consumes exactly one pack, grants five cards and 1–5 Stardust, and failures consume nothing.
 8. Challenges: each task verifies only its intended in-game event; completed challenges can be hidden; claim state refreshes after website claim.
 9. World restrictions: repeat XP/challenge attempts on a normal world and on Leagues, Deadman, LMS, PvP/high-risk, PvP Arena, beta/tournament/speedrunning/no-save worlds. Only the normal-world attempt may progress.
-10. Failure handling: offline service, timeout, malformed response, revoked token, logout/world hop, plugin disable/re-enable, and consent withdrawal are safe and understandable.
+10. Failure handling: offline service, timeout, malformed response, revoked token, logout/world hop, and plugin disable/re-enable are safe and understandable.
 11. Chat: `!deckscape` reports collected rarity counts and does not expose private identifiers.
 12. UI: side panel, maximized/resized Collection/Packs/Challenges windows, card art, dialogs and canvas overlays remain readable at common RuneLite sizes/scaling.
 
@@ -115,12 +115,12 @@ Open a pull request from your fork branch to `runelite/plugin-hub`. In its descr
 - what the plugin does;
 - that Deckscape is an independent third-party service;
 - the exact Supabase endpoint and the optional OSRS Wiki artwork host;
-- that networking is off until the unchecked-by-default consent option is enabled;
+- that Plugin Hub displays the third-party networking warning before installation;
 - the data categories sent and links to `README.md` and `PRIVACY.md`;
 - that rewards are server-authoritative/idempotent and restricted to normal worlds;
 - that there is no reflection, native code, arbitrary file access, process execution, or extra runtime dependency;
 - automated test result and the manual test matrix completed;
-- why the JAR is about 20.3 MB (bundled artwork).
+- why the JAR is close to 9 MB (bundled artwork).
 
 Watch every automated check. If a check or reviewer requires a plugin change:
 

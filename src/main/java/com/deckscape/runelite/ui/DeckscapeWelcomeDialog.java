@@ -49,19 +49,18 @@ final class DeckscapeWelcomeDialog extends JDialog
             + "<b>deckscape.gamecubejona.com</b>. Collect alternate card art created by OSRS artists, and unlock gold card trims "
             + "that show off verified achievements from the real game.</p>"
             + "<h2 style='color:#ffdf83'>Link and synchronize</h2>"
-            + "<ol><li>Open the Deckscape plugin settings and check <b>Share data with Deckscape (third party)</b>.</li>"
-            + "<li>Copy the one-use pairing code shown in the side panel.</li>"
+            + "<ol><li>Copy the one-use pairing code shown in the side panel.</li>"
             + "<li>Sign in at <b>deckscape.gamecubejona.com</b> and enter the code on your account page.</li>"
             + "<li>Use <b>Sync now</b> whenever you want to push progress or immediately pull website card-art and gold-trim choices. "
             + "Otherwise the plugin synchronizes at most once every five minutes while idle; pack interactions synchronize immediately.</li></ol>"
             + "<h2 style='color:#ffdf83'>Privacy and eligibility</h2>"
-            + "<p>Deckscape is a third-party service independent of RuneLite and Jagex and is hosted using Supabase. Data sharing is disabled until you explicitly enable it. "
-            + "When enabled, the plugin sends a revocable device token, XP deltas, verified challenge progress and world context, pack actions, "
+            + "<p>Deckscape is a third-party service independent of RuneLite and Jagex and is hosted using Supabase. "
+            + "While enabled, the plugin sends a revocable device token, XP deltas, verified challenge progress and world context, pack actions, "
             + "and normal server connection metadata. It never asks for or sends your RuneScape or website password.</p>"
             + "<p>XP and challenge progress only count on eligible normal main-game worlds. Leagues, Deadman, Last Man Standing, PvP and high-risk worlds, "
             + "PvP Arena, beta, tournament, speedrunning and other no-save modes are excluded. Rewards have no real-world or in-game trade value, "
             + "and the external service may occasionally be unavailable.</p>"
-            + "<p>You can disable sharing at any time in the plugin settings. See the repository privacy notice for full details.</p>"
+            + "<p>You can stop all Deckscape communication by disabling or uninstalling the plugin. See the repository privacy notice for full details.</p>"
             + "</body></html>");
         copy.setCaretPosition(0);
         JScrollPane scroll = new JScrollPane(copy);

@@ -75,7 +75,7 @@ public final class DeckscapeImages
         return CACHE.computeIfAbsent(resource, key -> ImageUtil.loadImageResource(DeckscapeImages.class, key));
     }
 
-    /** Uses bundled art immediately and schedules a consent-gated HTTPS fallback when it is absent. */
+    /** Uses bundled art immediately and schedules a host-restricted HTTPS fallback when it is absent. */
     public static BufferedImage loadCardArt(DeckscapeCard card)
     {
         // Explicit resources include the account's selected cosmetic variant and

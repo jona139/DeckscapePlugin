@@ -44,7 +44,6 @@ import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.Notifier;
 import net.runelite.client.chat.ChatCommandManager;
 import net.runelite.client.config.ConfigManager;
@@ -74,7 +73,6 @@ public final class DeckscapePlugin extends Plugin
     private volatile long lastSyncAttemptAt;
 
     @Inject private net.runelite.api.Client client;
-    @Inject private DeckscapeConfig config;
     @Inject private DeckscapeStore store;
     @Inject private DeckscapePanel panel;
     @Inject private ClientToolbar clientToolbar;
@@ -110,7 +108,7 @@ public final class DeckscapePlugin extends Plugin
             state.clearCachedAccountData();
             store.save();
         }
-        DeckscapeImages.configureRemoteArt(httpClient, config::dataSharingConsent, this::repaintDeckscapeArt);
+        DeckscapeImages.configureRemoteArt(httpClient, () -> true, this::repaintDeckscapeArt);
         chatCommandManager.registerCommand("!deckscape", this::showDeckscapeCollectionSummary);
         panel.setHandlers(this::openPack, this::manualSync, this::beginPairing, client::playSoundEffect);
         elementalStrikeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
@@ -123,11 +121,7 @@ public final class DeckscapePlugin extends Plugin
         navigationButton = NavigationButton.builder().tooltip("Deckscape").icon(icon).priority(7).panel(panel).build();
         clientToolbar.addNavigation(navigationButton);
         panel.refresh();
-        if (!config.dataSharingConsent())
-        {
-            panel.refresh();
-        }
-        else if (state.isLinked())
+        if (state.isLinked())
         {
             backgroundSyncIfDue(state);
         }
@@ -164,7 +158,7 @@ public final class DeckscapePlugin extends Plugin
             previousXp.clear();
             goldenFrameChallengeTracker.resetSession();
         }
-        else if (event.getGameState() == GameState.LOGGED_IN && config.dataSharingConsent())
+        else if (event.getGameState() == GameState.LOGGED_IN)
         {
             backgroundSyncIfDue(store.load());
         }
@@ -186,25 +180,6 @@ public final class DeckscapePlugin extends Plugin
     @Subscribe public void onItemContainerChanged(ItemContainerChanged event) { if (canRecordGameplay()) goldenFrameChallengeTracker.onItemContainerChanged(event); }
     @Subscribe public void onChatMessage(ChatMessage event) { if (canRecordGameplay()) goldenFrameChallengeTracker.onChatMessage(event); }
     @Subscribe public void onGameTick(GameTick event) { if (canRecordGameplay()) goldenFrameChallengeTracker.onGameTick(); }
-
-    @Subscribe
-    public void onConfigChanged(ConfigChanged event)
-    {
-        if (!"deckscape".equals(event.getGroup()) || !"dataSharingConsent".equals(event.getKey())) return;
-        previousXp.clear();
-        goldenFrameChallengeTracker.resetSession();
-        if (config.dataSharingConsent())
-        {
-            if (store.load().isLinked())
-            {
-                syncWithServer();
-                flushPendingEvents();
-            }
-            else beginPairing();
-        }
-        else DeckscapeImages.cancelRemoteArtRequests();
-        panel.refresh();
-    }
 
     private void repaintDeckscapeArt()
     {
@@ -234,7 +209,6 @@ public final class DeckscapePlugin extends Plugin
         try
         {
             DeckscapeState state = store.load();
-            if (!config.dataSharingConsent()) return;
             if (!state.isLinked())
             {
                 if (state.getPairingCode().isEmpty() || state.getPairingExpiresAt() <= System.currentTimeMillis()) beginPairing();
@@ -259,7 +233,7 @@ public final class DeckscapePlugin extends Plugin
 
     private void beginPairing()
     {
-        if (!config.dataSharingConsent() || store.load().isLinked() || !pairingInFlight.compareAndSet(false, true)) return;
+        if (store.load().isLinked() || !pairingInFlight.compareAndSet(false, true)) return;
         syncClient.startPairing()
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
@@ -278,7 +252,6 @@ public final class DeckscapePlugin extends Plugin
 
     private void pollPairing()
     {
-        if (!config.dataSharingConsent()) return;
         DeckscapeState state = store.load();
         if (state.getPairingCode().isEmpty() || state.getPendingDeviceToken().isEmpty()
             || !pairingInFlight.compareAndSet(false, true)) return;
@@ -355,7 +328,7 @@ public final class DeckscapePlugin extends Plugin
     private void flushPendingEvents()
     {
         DeckscapeState state = store.load();
-        if (!config.dataSharingConsent() || !state.isLinked() || !eventInFlight.compareAndSet(false, true)) return;
+        if (!state.isLinked() || !eventInFlight.compareAndSet(false, true)) return;
         PendingSyncEvent item;
         synchronized (state)
         {
@@ -451,11 +424,6 @@ public final class DeckscapePlugin extends Plugin
     private void openPack(PackType type)
     {
         DeckscapeState state = store.load();
-        if (!config.dataSharingConsent())
-        {
-            notifier.notify("Enable 'Share data with Deckscape' in the plugin settings before using online features.");
-            return;
-        }
         if (!state.isLinked())
         {
             notifier.notify("Link Deckscape to your website account before opening packs.");
@@ -501,7 +469,7 @@ public final class DeckscapePlugin extends Plugin
     private void syncWithServer()
     {
         DeckscapeState state = store.load();
-        if (!config.dataSharingConsent() || !state.isLinked() || !syncInFlight.compareAndSet(false, true)) return;
+        if (!state.isLinked() || !syncInFlight.compareAndSet(false, true)) return;
         lastSyncAttemptAt = System.currentTimeMillis();
         syncClient.request(state.getDeviceToken(), "get_state", null)
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
@@ -549,7 +517,7 @@ public final class DeckscapePlugin extends Plugin
     private void manualSync()
     {
         DeckscapeState state = store.load();
-        if (!config.dataSharingConsent() || !state.isLinked()) return;
+        if (!state.isLinked()) return;
         if (state.getPendingEvents().isEmpty()) syncWithServer();
         else flushPendingEvents();
     }
@@ -622,8 +590,7 @@ public final class DeckscapePlugin extends Plugin
 
     private boolean canRecordGameplay()
     {
-        return config.dataSharingConsent()
-            && WorldEligibility.isEligible(client.getGameState(), client.getWorldType());
+        return WorldEligibility.isEligible(client.getGameState(), client.getWorldType());
     }
 
     private static String stringValue(JsonObject object, String key)
