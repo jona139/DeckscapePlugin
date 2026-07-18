@@ -330,6 +330,22 @@ public final class DeckscapePlugin extends Plugin
     private void flushPendingEvents()
     {
         DeckscapeState state = store.load();
+        int flushBudget;
+        synchronized (state)
+        {
+            flushBudget = state.getPendingEvents().size();
+        }
+        flushPendingEvents(flushBudget);
+    }
+
+    /**
+     * Drains only the events that existed when this flush cycle began. Events created by
+     * live gameplay during the cycle stay queued for the next scheduled or manual sync.
+     */
+    private void flushPendingEvents(int remainingInCycle)
+    {
+        if (remainingInCycle <= 0) return;
+        DeckscapeState state = store.load();
         if (!state.isLinked() || !eventInFlight.compareAndSet(false, true)) return;
         PendingSyncEvent item;
         synchronized (state)
@@ -371,13 +387,13 @@ public final class DeckscapePlugin extends Plugin
                 finally
                 {
                     eventInFlight.set(false);
-                    flushPendingEvents();
+                    flushPendingEvents(remainingInCycle - 1);
                 }
             }))
-            .exceptionally(error -> { handleEventFailure(item, error); return null; });
+            .exceptionally(error -> { handleEventFailure(item, error, remainingInCycle); return null; });
     }
 
-    private void handleEventFailure(PendingSyncEvent item, Throwable error)
+    private void handleEventFailure(PendingSyncEvent item, Throwable error, int remainingInCycle)
     {
         eventInFlight.set(false);
         if (handleRevokedLink(error)) return;
@@ -401,7 +417,7 @@ public final class DeckscapePlugin extends Plugin
             }
             panel.refresh();
             notifier.notify("Deckscape skipped an invalid queued event and resumed synchronization.");
-            flushPendingEvents();
+            flushPendingEvents(remainingInCycle - 1);
         });
     }
 
