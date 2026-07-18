@@ -21,10 +21,21 @@ public interface DeckscapeConfig extends Config
     @ConfigItem(
         keyName = "packRewardPopup",
         name = "XP reward popup",
-        description = "Show a notification when XP awards a pack, Coins, or Stardust.",
+        description = "Show an in-game popup when XP awards a pack, Coins, or Stardust.",
         position = 1
     )
     default boolean packRewardPopup()
+    {
+        return true;
+    }
+
+    @ConfigItem(
+        keyName = "xpRewardNotifications",
+        name = "XP reward notifications",
+        description = "Show a Windows notification when XP awards a pack, Coins, or Stardust.",
+        position = 2
+    )
+    default boolean xpRewardNotifications()
     {
         return true;
     }

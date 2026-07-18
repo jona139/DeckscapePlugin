@@ -86,6 +86,34 @@ class DeckscapeStateSyncTest
     }
 
     @Test
+    void freezesAttemptedXpBatchSoRetriesKeepTheSamePayload()
+    {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("xp", 125);
+        PendingSyncEvent event = new PendingSyncEvent("runelite_xp", "xp-event", payload);
+
+        event.markAttempted();
+
+        assertTrue(event.isAttempted());
+        assertEquals(0, event.appendXp(75, 100_000));
+        assertEquals(125, event.getPayload().get("xp").getAsInt());
+    }
+
+    @Test
+    void attemptedStateSurvivesCacheRestart()
+    {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("xp", 125);
+        PendingSyncEvent event = new PendingSyncEvent("runelite_xp", "xp-event", payload);
+        event.markAttempted();
+
+        PendingSyncEvent restored = new Gson().fromJson(new Gson().toJson(event), PendingSyncEvent.class);
+
+        assertTrue(restored.isAttempted());
+        assertEquals(0, restored.appendXp(75, 100_000));
+    }
+
+    @Test
     void pairingSessionAndOutboxSurviveCacheRestart()
     {
         DeckscapeState state = new DeckscapeState();

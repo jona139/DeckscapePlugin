@@ -17,6 +17,7 @@ import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.LayoutManager;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -46,12 +47,14 @@ import javax.swing.event.DocumentListener;
 public final class DeckscapeDialog extends JFrame
 {
     public interface OpenPackAction { void open(PackType type); }
+    public interface PurchasePackAction { void purchase(PackType type); }
 
     private static final int MIN_WIDTH = 560;
     private static final int MIN_HEIGHT = 420;
 
     private final DeckscapeStore store;
     private final OpenPackAction openPackAction;
+    private final PurchasePackAction purchasePackAction;
     private final Runnable syncAction;
     private final java.util.function.Consumer<Integer> soundPlayer;
     private final JPanel content = new JPanel(new BorderLayout());
@@ -71,11 +74,14 @@ public final class DeckscapeDialog extends JFrame
 
     public enum Tab { COLLECTION, PACKS, CHALLENGES }
 
-    public DeckscapeDialog(Frame parent, DeckscapeStore store, OpenPackAction openPackAction, Runnable syncAction, java.util.function.Consumer<Integer> soundPlayer)
+    public DeckscapeDialog(Frame parent, DeckscapeStore store, OpenPackAction openPackAction,
+                           PurchasePackAction purchasePackAction, Runnable syncAction,
+                           java.util.function.Consumer<Integer> soundPlayer)
     {
         super("Deckscape Companion");
         this.store = store;
         this.openPackAction = openPackAction;
+        this.purchasePackAction = purchasePackAction;
         this.syncAction = syncAction;
         this.soundPlayer = soundPlayer;
 
@@ -562,6 +568,19 @@ public final class DeckscapeDialog extends JFrame
             row.add(icon, BorderLayout.WEST);
             row.add(copy, BorderLayout.CENTER);
 
+            JButton buy = PackOpeningView.button("Buy · " + String.format("%,d", type.getPrice()));
+            buy.setPreferredSize(new Dimension(108, 32));
+            buy.setEnabled(purchasePackAction != null && state.isLinked() && state.getCoins() >= type.getPrice());
+            if (state.getCoins() < type.getPrice())
+                buy.setToolTipText("You need " + String.format("%,d", type.getPrice()) + " Coins");
+            buy.addActionListener(event ->
+            {
+                if (purchasePackAction == null) return;
+                buy.setEnabled(false);
+                buy.setText("Buying…");
+                purchasePackAction.purchase(type);
+            });
+
             JButton open = PackOpeningView.button("Open Pack");
             open.setPreferredSize(new Dimension(100, 32));
             open.setEnabled(state.packCount(type) > 0);
@@ -573,7 +592,11 @@ public final class DeckscapeDialog extends JFrame
                 setVisible(false);
                 openPackAction.open(type);
             });
-            row.add(open, BorderLayout.EAST);
+            JPanel actions = new JPanel(new GridLayout(1, 2, 8, 0));
+            actions.setOpaque(false);
+            actions.add(buy);
+            actions.add(open);
+            row.add(actions, BorderLayout.EAST);
 
             listPanel.add(row);
             listPanel.add(Box.createRigidArea(new Dimension(0, 8)));
