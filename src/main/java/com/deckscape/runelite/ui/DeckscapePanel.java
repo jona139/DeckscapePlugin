@@ -37,6 +37,7 @@ public final class DeckscapePanel extends PluginPanel
     private final DeckscapeStore store;
     private DeckscapeDialog dialog;
     private DeckscapeDialog.OpenPackAction openPackAction;
+    private DeckscapeDialog.PurchasePackAction purchasePackAction;
     private Runnable syncAction;
     private Runnable beginPairingAction;
     private java.util.function.Consumer<Integer> soundPlayer;
@@ -180,7 +181,7 @@ public final class DeckscapePanel extends PluginPanel
 
         body.add(actionButton("Collection", "Browse every synchronized card", DeckscapeDialog.Tab.COLLECTION));
         body.add(Box.createRigidArea(new Dimension(0, 8)));
-        body.add(actionButton("Packs", "Open rewards on the game canvas", DeckscapeDialog.Tab.PACKS));
+        body.add(actionButton("Packs", "Purchase and open packs", DeckscapeDialog.Tab.PACKS));
         body.add(Box.createRigidArea(new Dimension(0, 8)));
         body.add(actionButton("OSRS challenges", "Track verified in-game feats", DeckscapeDialog.Tab.CHALLENGES));
         body.add(Box.createRigidArea(new Dimension(0, 8)));
@@ -269,7 +270,8 @@ public final class DeckscapePanel extends PluginPanel
     private void showDialog(DeckscapeDialog.Tab tab)
     {
         Frame frame = (Frame) SwingUtilities.getWindowAncestor(this);
-        if (dialog == null || !dialog.isDisplayable()) dialog = new DeckscapeDialog(frame, store, openPackAction, syncAction, soundPlayer);
+        if (dialog == null || !dialog.isDisplayable())
+            dialog = new DeckscapeDialog(frame, store, openPackAction, purchasePackAction, syncAction, soundPlayer);
         dialog.showTab(tab);
         dialog.setVisible(true);
     }
@@ -343,9 +345,13 @@ public final class DeckscapePanel extends PluginPanel
         });
     }
 
-    public void setHandlers(DeckscapeDialog.OpenPackAction openPackAction, Runnable syncAction, Runnable beginPairingAction, java.util.function.Consumer<Integer> soundPlayer)
+    public void setHandlers(DeckscapeDialog.OpenPackAction openPackAction,
+                            DeckscapeDialog.PurchasePackAction purchasePackAction,
+                            Runnable syncAction, Runnable beginPairingAction,
+                            java.util.function.Consumer<Integer> soundPlayer)
     {
         this.openPackAction = openPackAction;
+        this.purchasePackAction = purchasePackAction;
         this.syncAction = syncAction;
         this.beginPairingAction = beginPairingAction;
         this.soundPlayer = soundPlayer;

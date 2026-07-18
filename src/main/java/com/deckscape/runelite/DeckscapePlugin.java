@@ -70,6 +70,7 @@ public final class DeckscapePlugin extends Plugin
     private final AtomicBoolean pairingInFlight = new AtomicBoolean();
     private final AtomicBoolean syncInFlight = new AtomicBoolean();
     private final AtomicBoolean eventInFlight = new AtomicBoolean();
+    private final AtomicBoolean purchaseInFlight = new AtomicBoolean();
     private volatile long lastSyncAttemptAt;
 
     @Inject private net.runelite.api.Client client;
@@ -80,6 +81,7 @@ public final class DeckscapePlugin extends Plugin
     @Inject private ChallengeCompletionOverlay completionOverlay;
     @Inject private PackRewardOverlay packRewardOverlay;
     @Inject private PackRevealOverlay packRevealOverlay;
+    @Inject private DeckscapeConfig config;
     @Inject private ElementalStrikeTracker elementalStrikeTracker;
     @Inject private GoldenFrameChallengeTracker goldenFrameChallengeTracker;
     @Inject private Notifier notifier;
@@ -110,7 +112,7 @@ public final class DeckscapePlugin extends Plugin
         }
         DeckscapeImages.configureRemoteArt(httpClient, () -> true, this::repaintDeckscapeArt);
         chatCommandManager.registerCommand("!deckscape", this::showDeckscapeCollectionSummary);
-        panel.setHandlers(this::openPack, this::manualSync, this::beginPairing, client::playSoundEffect);
+        panel.setHandlers(this::openPack, this::purchasePack, this::manualSync, this::beginPairing, client::playSoundEffect);
         elementalStrikeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
         goldenFrameChallengeTracker.setCompletionHandler(this::completeRuneLiteChallenge);
         overlayManager.add(completionOverlay);
@@ -286,7 +288,7 @@ public final class DeckscapePlugin extends Plugin
         {
             while (remaining > 0)
             {
-                if (!eventInFlight.get() && !state.getPendingEvents().isEmpty())
+                if (!state.getPendingEvents().isEmpty())
                 {
                     PendingSyncEvent tail = state.getPendingEvents().get(state.getPendingEvents().size() - 1);
                     remaining -= tail.appendXp(remaining, 100_000);
@@ -328,12 +330,30 @@ public final class DeckscapePlugin extends Plugin
     private void flushPendingEvents()
     {
         DeckscapeState state = store.load();
+        int flushBudget;
+        synchronized (state)
+        {
+            flushBudget = state.getPendingEvents().size();
+        }
+        flushPendingEvents(flushBudget);
+    }
+
+    /**
+     * Drains only the events that existed when this flush cycle began. Events created by
+     * live gameplay during the cycle stay queued for the next scheduled or manual sync.
+     */
+    private void flushPendingEvents(int remainingInCycle)
+    {
+        if (remainingInCycle <= 0) return;
+        DeckscapeState state = store.load();
         if (!state.isLinked() || !eventInFlight.compareAndSet(false, true)) return;
         PendingSyncEvent item;
         synchronized (state)
         {
             if (state.getPendingEvents().isEmpty()) { eventInFlight.set(false); return; }
             item = state.getPendingEvents().get(0);
+            item.markAttempted();
+            store.save();
         }
         lastSyncAttemptAt = System.currentTimeMillis();
         syncClient.request(state.getDeviceToken(), item.getAction(), item.getPayload())
@@ -367,13 +387,13 @@ public final class DeckscapePlugin extends Plugin
                 finally
                 {
                     eventInFlight.set(false);
-                    flushPendingEvents();
+                    flushPendingEvents(remainingInCycle - 1);
                 }
             }))
-            .exceptionally(error -> { handleEventFailure(item, error); return null; });
+            .exceptionally(error -> { handleEventFailure(item, error, remainingInCycle); return null; });
     }
 
-    private void handleEventFailure(PendingSyncEvent item, Throwable error)
+    private void handleEventFailure(PendingSyncEvent item, Throwable error, int remainingInCycle)
     {
         eventInFlight.set(false);
         if (handleRevokedLink(error)) return;
@@ -397,7 +417,7 @@ public final class DeckscapePlugin extends Plugin
             }
             panel.refresh();
             notifier.notify("Deckscape skipped an invalid queued event and resumed synchronization.");
-            flushPendingEvents();
+            flushPendingEvents(remainingInCycle - 1);
         });
     }
 
@@ -418,7 +438,8 @@ public final class DeckscapePlugin extends Plugin
         if (awarded.size() > 0) rewards.add(awarded.size() + " pack" + (awarded.size() == 1 ? "" : "s"));
         if (coins > 0) rewards.add(coins + " Coins");
         if (stardust > 0) rewards.add(stardust + " Stardust");
-        if (!rewards.isEmpty()) notifier.notify("Deckscape XP reward: " + String.join(" + ", rewards));
+        if (!rewards.isEmpty() && config.xpRewardNotifications())
+            notifier.notify("Deckscape XP reward: " + String.join(" + ", rewards));
     }
 
     private void openPack(PackType type)
@@ -490,6 +511,58 @@ public final class DeckscapePlugin extends Plugin
                 panel.refresh();
                 return null;
             });
+    }
+
+    private void purchasePack(PackType type)
+    {
+        DeckscapeState state = store.load();
+        if (!state.isLinked())
+        {
+            notifier.notify("Link Deckscape to your website account before purchasing packs.");
+            return;
+        }
+        if (state.getCoins() < type.getPrice())
+        {
+            notifier.notify("You need " + String.format("%,d", type.getPrice()) + " Coins to purchase that pack.");
+            panel.refresh();
+            return;
+        }
+        if (!purchaseInFlight.compareAndSet(false, true)) return;
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("type", type.name());
+        payload.addProperty("quantity", 1);
+        lastSyncAttemptAt = System.currentTimeMillis();
+        syncClient.request(state.getDeviceToken(), "buy_pack", payload)
+            .thenAccept(response -> SwingUtilities.invokeLater(() -> {
+                try
+                {
+                    DeckscapeState current = store.load();
+                    if (response.has("state")) updateLocalState(current, response.getAsJsonObject("state"));
+                    current.setLastSyncAt(System.currentTimeMillis());
+                    store.save();
+                    panel.refresh();
+                }
+                finally { purchaseInFlight.set(false); }
+            }))
+            .exceptionally(error -> {
+                purchaseInFlight.set(false);
+                if (!handleRevokedLink(error))
+                {
+                    log.warn("Failed to purchase pack", error);
+                    notifier.notify("Deckscape could not purchase that pack: " + rootMessage(error));
+                    panel.refresh();
+                }
+                return null;
+            });
+    }
+
+    private static String rootMessage(Throwable error)
+    {
+        Throwable cause = error;
+        while (cause.getCause() != null) cause = cause.getCause();
+        String message = cause.getMessage();
+        return message == null || message.trim().isEmpty() ? "request failed" : message;
     }
 
     private boolean handleRevokedLink(Throwable error)
