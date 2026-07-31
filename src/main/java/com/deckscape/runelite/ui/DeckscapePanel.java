@@ -26,6 +26,7 @@ import javax.swing.JButton;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -48,6 +49,12 @@ public final class DeckscapePanel extends PluginPanel
     private final JLabel packsLabel = walletValueLabel();
     private final JLabel cardsLabel = walletValueLabel();
     private final JLabel claimedLabel = new JLabel();
+    private final JLabel packProgressLabel = progressValueLabel();
+    private final JLabel packPercentLabel = progressPercentLabel(new Color(222, 168, 31));
+    private final JLabel currencyProgressLabel = progressValueLabel();
+    private final JLabel currencyPercentLabel = progressPercentLabel(new Color(42, 185, 190));
+    private final JProgressBar packProgressBar = progressBar(new Color(222, 168, 31));
+    private final JProgressBar currencyProgressBar = progressBar(new Color(42, 185, 190));
     private final JButton syncNowButton = new JButton("Sync now");
     private final JTextField codeField = new JTextField();
     private final JPanel pairingBox = new JPanel();
@@ -55,10 +62,11 @@ public final class DeckscapePanel extends PluginPanel
     @Inject
     public DeckscapePanel(DeckscapeStore store)
     {
-        super(false);
+        super(true);
         this.store = store;
         setLayout(new BorderLayout());
         setBackground(DeckscapePalette.PANEL_DARK);
+        getScrollPane().getVerticalScrollBar().setUnitIncrement(16);
 
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
@@ -191,6 +199,10 @@ public final class DeckscapePanel extends PluginPanel
         guideButton.addActionListener(event -> showWelcome());
         body.add(guideButton);
         body.add(Box.createVerticalGlue());
+        body.add(Box.createRigidArea(new Dimension(0, 14)));
+        body.add(progressCard("NEXT PACK REWARD", packProgressLabel, packPercentLabel, packProgressBar));
+        body.add(Box.createRigidArea(new Dimension(0, 7)));
+        body.add(progressCard("NEXT CURRENCY REWARD", currencyProgressLabel, currencyPercentLabel, currencyProgressBar));
 
         add(body, BorderLayout.CENTER);
         addHierarchyListener(event -> {
@@ -267,6 +279,64 @@ public final class DeckscapePanel extends PluginPanel
         return label;
     }
 
+    private JPanel progressCard(String title, JLabel value, JLabel percent, JProgressBar bar)
+    {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(22, 22, 18));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(116, 87, 18)),
+            BorderFactory.createEmptyBorder(7, 8, 7, 8)));
+        panel.setAlignmentX(CENTER_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 69));
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setForeground(DeckscapePalette.GOLD);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 9));
+        titleLabel.setAlignmentX(LEFT_ALIGNMENT);
+        panel.add(titleLabel);
+
+        JPanel values = new JPanel(new BorderLayout());
+        values.setOpaque(false);
+        values.setAlignmentX(LEFT_ALIGNMENT);
+        values.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
+        values.add(value, BorderLayout.WEST);
+        values.add(percent, BorderLayout.EAST);
+        panel.add(values);
+        panel.add(Box.createRigidArea(new Dimension(0, 3)));
+        panel.add(bar);
+        return panel;
+    }
+
+    private static JLabel progressValueLabel()
+    {
+        JLabel label = new JLabel("0 / 0 XP");
+        label.setForeground(DeckscapePalette.PARCHMENT);
+        label.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        return label;
+    }
+
+    private static JLabel progressPercentLabel(Color color)
+    {
+        JLabel label = new JLabel("0%", SwingConstants.RIGHT);
+        label.setForeground(color);
+        label.setFont(new Font("SansSerif", Font.BOLD, 10));
+        return label;
+    }
+
+    private static JProgressBar progressBar(Color color)
+    {
+        JProgressBar bar = new JProgressBar(0, 100);
+        bar.setValue(0);
+        bar.setForeground(color);
+        bar.setBackground(new Color(48, 48, 43));
+        bar.setBorder(BorderFactory.createEmptyBorder());
+        bar.setAlignmentX(LEFT_ALIGNMENT);
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 8));
+        bar.setPreferredSize(new Dimension(100, 8));
+        return bar;
+    }
+
     private void showDialog(DeckscapeDialog.Tab tab)
     {
         Frame frame = (Frame) SwingUtilities.getWindowAncestor(this);
@@ -312,10 +382,23 @@ public final class DeckscapePanel extends PluginPanel
             packsLabel.setText(String.valueOf(packs));
             cardsLabel.setText(uniqueCards + " / " + CardCatalog.all().size());
             claimedLabel.setText(state.getCompletedChallenges().size() + " challenges claimed");
+            XpProgressSnapshot progress = XpProgressSnapshot.from(state);
+            updateProgress(packProgressLabel, packPercentLabel, packProgressBar,
+                progress.getPackProgress(), progress.getPackInterval(), progress.getPackPercent());
+            updateProgress(currencyProgressLabel, currencyPercentLabel, currencyProgressBar,
+                progress.getCurrencyProgress(), progress.getCurrencyInterval(), progress.getCurrencyPercent());
             if (dialog != null && dialog.isVisible()) dialog.refreshData();
             revalidate();
             repaint();
         });
+    }
+
+    private static void updateProgress(JLabel value, JLabel percent, JProgressBar bar,
+                                       int current, int target, int percentage)
+    {
+        value.setText(String.format("%,d / %,d XP", current, target));
+        percent.setText(percentage + "%");
+        bar.setValue(percentage);
     }
 
     public void hideDialog()
