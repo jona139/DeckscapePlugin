@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+import net.runelite.client.ui.laf.RuneLiteScrollBarUI;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,6 +34,7 @@ class DeckscapePanelLayoutTest
         assertNotNull(scrollPane);
         assertEquals(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER, scrollPane.getHorizontalScrollBarPolicy());
         assertEquals(16, scrollPane.getVerticalScrollBar().getUnitIncrement());
+        assertEquals(RuneLiteScrollBarUI.class, scrollPane.getVerticalScrollBar().getUI().getClass());
     }
 
     private static JScrollPane findScrollPane(Container root)

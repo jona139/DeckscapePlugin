@@ -31,6 +31,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.laf.RuneLiteScrollBarUI;
 
 @Singleton
 public final class DeckscapePanel extends PluginPanel
@@ -66,7 +67,10 @@ public final class DeckscapePanel extends PluginPanel
         this.store = store;
         setLayout(new BorderLayout());
         setBackground(DeckscapePalette.PANEL_DARK);
+        getScrollPane().setBorder(null);
+        getScrollPane().setViewportBorder(null);
         getScrollPane().getVerticalScrollBar().setUnitIncrement(16);
+        getScrollPane().getVerticalScrollBar().setUI(new RuneLiteScrollBarUI());
 
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
