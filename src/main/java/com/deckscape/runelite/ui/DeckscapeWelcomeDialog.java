@@ -49,7 +49,7 @@ final class DeckscapeWelcomeDialog extends JDialog
             + "<b>deckscape.gamecubejona.com</b>. Collect alternate card art created by OSRS artists, and unlock gold card trims "
             + "that show off verified achievements from the real game.</p>"
             + "<h2 style='color:#ffdf83'>Link and synchronize</h2>"
-            + "<ol><li>Copy the one-use pairing code shown in the side panel.</li>"
+            + "<ol><li>Click <b>New code</b> in the side panel, then copy the one-use pairing code.</li>"
             + "<li>Sign in at <b>deckscape.gamecubejona.com</b> and enter the code on your account page.</li>"
             + "<li>Use <b>Sync now</b> whenever you want to push progress or immediately pull website card-art and gold-trim choices. "
             + "Otherwise the plugin synchronizes at most once every five minutes while idle; pack interactions synchronize immediately.</li></ol>"

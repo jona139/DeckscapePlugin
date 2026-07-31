@@ -301,7 +301,7 @@ public final class DeckscapePanel extends PluginPanel
             if (!state.getPendingEvents().isEmpty()) lastSync += " · " + state.getPendingEvents().size() + " queued";
             syncDetail.setText(lastSync);
             syncNowButton.setEnabled(state.isLinked());
-            codeField.setText(state.getPairingCode().isEmpty() ? "CREATING…" : state.getPairingCode());
+            codeField.setText(state.getPairingCode().isEmpty() ? "CLICK NEW CODE" : state.getPairingCode());
             pairingBox.setVisible(!state.isLinked());
             int packs = java.util.Arrays.stream(PackType.inventoryTypes()).mapToInt(state::packCount).sum();
             long uniqueCards = CardCatalog.all().stream()
