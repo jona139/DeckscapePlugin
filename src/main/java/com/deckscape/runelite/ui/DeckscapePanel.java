@@ -204,7 +204,7 @@ public final class DeckscapePanel extends PluginPanel
         body.add(guideButton);
         body.add(Box.createVerticalGlue());
         body.add(Box.createRigidArea(new Dimension(0, 14)));
-        body.add(progressCard("NEXT PACK REWARD", packProgressLabel, packPercentLabel, packProgressBar));
+        body.add(progressCard("NEXT PACK ROLL", packProgressLabel, packPercentLabel, packProgressBar));
         body.add(Box.createRigidArea(new Dimension(0, 7)));
         body.add(progressCard("NEXT CURRENCY REWARD", currencyProgressLabel, currencyPercentLabel, currencyProgressBar));
 
