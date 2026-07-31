@@ -49,7 +49,7 @@ Then launch a development client with `./gradlew run` and verify all of the foll
 
 1. Fresh install: the guide opens once when the side panel is first shown and can be reopened with **Guide, setup & privacy**.
 2. Installation warning: the Plugin Hub warning accurately lists the external data sharing before installation.
-3. Pairing: enabling the installed plugin creates a one-use pairing code, linking succeeds, and no RuneScape/web password is requested.
+3. Pairing: an idle unlinked plugin makes no requests; clicking **New code** creates a one-use pairing code, linking succeeds, and no RuneScape/web password is requested.
 4. Synchronization: automatic idle sync is limited to once per five minutes; manual **Sync now** works inside that window; pack interactions sync immediately.
 5. Collection: full catalog, search, filters, sorting, owned/missing state, alternate web-selected art, and web-selected gold trim refresh after Sync.
 6. Rewards: independent rolls at 50,000 eligible XP for a 50% core-pack chance and at 10,000 XP for 80% 100–200 Coins or 20% 1–3 Stardust; only General/Combat/Skilling packs can roll; reconnect/retry cannot duplicate either reward track.

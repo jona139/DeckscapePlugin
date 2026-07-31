@@ -66,12 +66,14 @@ import okhttp3.OkHttpClient;
 public final class DeckscapePlugin extends Plugin
 {
     private static final long BACKGROUND_SYNC_INTERVAL_MS = TimeUnit.MINUTES.toMillis(5);
+    private static final long PAIRING_POLL_INTERVAL_MS = TimeUnit.SECONDS.toMillis(10);
     private final Map<Skill, Integer> previousXp = new EnumMap<>(Skill.class);
     private final AtomicBoolean pairingInFlight = new AtomicBoolean();
     private final AtomicBoolean syncInFlight = new AtomicBoolean();
     private final AtomicBoolean eventInFlight = new AtomicBoolean();
     private final AtomicBoolean purchaseInFlight = new AtomicBoolean();
     private volatile long lastSyncAttemptAt;
+    private volatile long lastPairingPollAt;
 
     @Inject private net.runelite.api.Client client;
     @Inject private DeckscapeStore store;
@@ -126,10 +128,6 @@ public final class DeckscapePlugin extends Plugin
         if (state.isLinked())
         {
             backgroundSyncIfDue(state);
-        }
-        else
-        {
-            beginPairing();
         }
         maintenanceTask = executor.scheduleWithFixedDelay(this::maintainSync, 5, 5, TimeUnit.SECONDS);
     }
@@ -213,8 +211,18 @@ public final class DeckscapePlugin extends Plugin
             DeckscapeState state = store.load();
             if (!state.isLinked())
             {
-                if (state.getPairingCode().isEmpty() || state.getPairingExpiresAt() <= System.currentTimeMillis()) beginPairing();
-                else pollPairing();
+                long now = System.currentTimeMillis();
+                if (!state.getPairingCode().isEmpty() && state.getPairingExpiresAt() <= now)
+                {
+                    state.clearPairingSession();
+                    store.save();
+                    panel.refresh();
+                }
+                else if (shouldPollPairing(state, now, lastPairingPollAt))
+                {
+                    lastPairingPollAt = now;
+                    pollPairing();
+                }
                 return;
             }
             backgroundSyncIfDue(state);
@@ -236,6 +244,7 @@ public final class DeckscapePlugin extends Plugin
     private void beginPairing()
     {
         if (store.load().isLinked() || !pairingInFlight.compareAndSet(false, true)) return;
+        lastPairingPollAt = 0L;
         syncClient.startPairing()
             .thenAccept(response -> SwingUtilities.invokeLater(() -> {
                 try
@@ -277,6 +286,13 @@ public final class DeckscapePlugin extends Plugin
                 finally { pairingInFlight.set(false); }
             }))
             .exceptionally(error -> { pairingInFlight.set(false); log.debug("Deckscape pairing is still pending", error); return null; });
+    }
+
+    static boolean shouldPollPairing(DeckscapeState state, long now, long lastPollAt)
+    {
+        return !state.getPairingCode().isEmpty()
+            && state.getPairingExpiresAt() > now
+            && now - lastPollAt >= PAIRING_POLL_INTERVAL_MS;
     }
 
     private void processXp(int gained)
@@ -581,8 +597,7 @@ public final class DeckscapePlugin extends Plugin
             }
             panel.hideDialog();
             panel.refresh();
-            notifier.notify("Deckscape access was revoked. A new sync code is ready to link again.");
-            beginPairing();
+            notifier.notify("Deckscape access was revoked. Click New code to link again.");
         });
         return true;
     }

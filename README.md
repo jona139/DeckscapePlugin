@@ -26,7 +26,8 @@ Disabling or uninstalling the plugin stops Deckscape requests. Players can also 
 
 ## How it works
 
-- RuneLite shows a one-use code when the plugin starts; enter it on the signed-in Deckscape website within ten minutes.
+- Click **New code** to create a one-use link code, then enter it on the signed-in Deckscape website within ten minutes.
+- Unlinked clients make no background service requests; active pairing checks are limited to once every ten seconds.
 - The plugin stores a revocable device token and a read-through display cache in RuneLite's `ConfigManager`.
 - Collections, wallets, packs, gold trims, challenges, and the catalog are replaced by each canonical server snapshot.
 - XP and challenge observations use a persisted retry outbox with stable event IDs.
