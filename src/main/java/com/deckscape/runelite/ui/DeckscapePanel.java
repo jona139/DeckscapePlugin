@@ -30,6 +30,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.laf.RuneLiteScrollBarUI;
 
@@ -69,6 +70,9 @@ public final class DeckscapePanel extends PluginPanel
         setBackground(DeckscapePalette.PANEL_DARK);
         getScrollPane().setBorder(null);
         getScrollPane().setViewportBorder(null);
+        getScrollPane().setBackground(ColorScheme.DARK_GRAY_COLOR);
+        getScrollPane().getViewport().setBackground(ColorScheme.DARK_GRAY_COLOR);
+        getScrollPane().getVerticalScrollBar().setBackground(ColorScheme.SCROLL_TRACK_COLOR);
         getScrollPane().getVerticalScrollBar().setUnitIncrement(16);
         getScrollPane().getVerticalScrollBar().setUI(new RuneLiteScrollBarUI());
 
@@ -100,9 +104,9 @@ public final class DeckscapePanel extends PluginPanel
         featureTitle.setAlignmentX(LEFT_ALIGNMENT);
         featureCard.add(featureTitle);
         featureCard.add(Box.createRigidArea(new Dimension(0, 6)));
-        JLabel featureCopy = new JLabel("<html>Use the cards you earn here to play a fully working card game at "
-            + "<b>deckscape.gamecubejona.com</b>.<br><br>Discover alternate card art created by OSRS artists, "
-            + "and unlock gold card trims that show off verified achievements from the real game.</html>");
+        JLabel featureCopy = new JLabel("<html><div style='width:120px'>Use the cards you earn here to play a fully "
+            + "working card game at <b>deckscape.<br>gamecubejona.com</b>.<br><br>Discover alternate card art created "
+            + "by OSRS artists, and unlock gold card trims that show off verified achievements from the real game.</div></html>");
         featureCopy.setForeground(DeckscapePalette.PARCHMENT);
         featureCopy.setFont(new Font("SansSerif", Font.PLAIN, 12));
         featureCopy.setAlignmentX(LEFT_ALIGNMENT);
